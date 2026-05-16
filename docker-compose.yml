@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment: { POSTGRES_USER: cu, POSTGRES_PASSWORD: cu_dev, POSTGRES_DB: cu }
+    ports: ["5432:5432"]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck: { test: ["CMD-SHELL","pg_isready -U cu"], interval: 5s, retries: 10 }
+  vm:
+    # Public lightweight Ubuntu + Xvfb + VNC image. Replace with a custom image
+    # in production that has the apps you want to automate pre-installed.
+    image: dorowu/ubuntu-desktop-lxde-vnc:focal
+    ports: ["6080:80", "5900:5900"]
+    shm_size: "1gb"
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://cu:cu_dev@postgres:5432/cu
+      VM_VNC_HOST: vm
+
+    depends_on:
+      postgres: { condition: service_healthy }
+      vm:       { condition: service_started }
+
+    ports: ["8000:8000"]
+    volumes: [./src:/app/src, ./data:/app/data]
+volumes:
+  postgres-data:
