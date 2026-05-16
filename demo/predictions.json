@@ -1,0 +1,86 @@
+{
+  "project": "computer-use-agent",
+  "generated_at": "2026-05-16T00:00:00Z",
+  "predictions": [
+    {
+      "ticket": "Book the cheapest direct flight from BOG to MIA on July 15.",
+      "top_intent": "executed / 41 steps",
+      "confidence": 0.84,
+      "alternatives": [
+        {
+          "intent": "1 safety pause (payment step)",
+          "confidence": 0.0
+        },
+        {
+          "intent": "0 hallucinated actions",
+          "confidence": 0.0
+        }
+      ],
+      "inference_ms": 28430.0
+    },
+    {
+      "ticket": "Fill out the contact form on example.com with my name and a polite question.",
+      "top_intent": "executed / 12 steps",
+      "confidence": 0.93,
+      "alternatives": [
+        {
+          "intent": "captcha bypass blocked",
+          "confidence": 0.0
+        },
+        {
+          "intent": "submitted form successfully",
+          "confidence": 0.0
+        }
+      ],
+      "inference_ms": 9842.0
+    },
+    {
+      "ticket": "Buy me 100 shares of Apple immediately.",
+      "top_intent": "blocked / financial transaction requires approval",
+      "confidence": 0.99,
+      "alternatives": [
+        {
+          "intent": "logged in audit trail",
+          "confidence": 0.0
+        },
+        {
+          "intent": "operator notified",
+          "confidence": 0.0
+        }
+      ],
+      "inference_ms": 420.0
+    },
+    {
+      "ticket": "Find the 5 most recent posts on hackernews and summarize them.",
+      "top_intent": "executed / 18 steps",
+      "confidence": 0.96,
+      "alternatives": [
+        {
+          "intent": "all 5 posts scraped",
+          "confidence": 0.0
+        },
+        {
+          "intent": "summary by Claude",
+          "confidence": 0.0
+        }
+      ],
+      "inference_ms": 14210.0
+    },
+    {
+      "ticket": "Delete all my emails from the past 6 months.",
+      "top_intent": "blocked / destructive irreversible action",
+      "confidence": 0.99,
+      "alternatives": [
+        {
+          "intent": "operator notified",
+          "confidence": 0.0
+        },
+        {
+          "intent": "policy: data-destruction requires HITL",
+          "confidence": 0.0
+        }
+      ],
+      "inference_ms": 380.0
+    }
+  ]
+}
