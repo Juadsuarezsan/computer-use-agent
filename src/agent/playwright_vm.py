@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
+from playwright.async_api import Error as PlaywrightError
 
 from src.agent.protocols import Observation, UIElement
 from src.api.schemas import Action
@@ -59,6 +60,11 @@ KEY_MAP = {
     "tab": "Tab",
     "backspace": "Backspace",
     "delete": "Delete",
+    "del": "Delete",
+    "ins": "Insert",
+    "insert": "Insert",
+    "prior": "PageUp",
+    "next": "PageDown",
     "space": "Space",
     "up": "ArrowUp",
     "down": "ArrowDown",
@@ -136,7 +142,18 @@ class PlaywrightVM:
         from playwright.async_api import async_playwright
 
         self._pw = await async_playwright().start()
-        launch_kwargs: dict[str, Any] = {"headless": self.headless}
+        launch_kwargs: dict[str, Any] = {
+            "headless": self.headless,
+            # keep the sandbox offline: no update pings, no first-run traffic
+            "args": [
+                "--disable-background-networking",
+                "--disable-component-update",
+                "--disable-default-apps",
+                "--disable-sync",
+                "--no-first-run",
+                "--disable-features=OptimizationHints,MediaRouter",
+            ],
+        }
         if self.chromium_path:
             launch_kwargs["executable_path"] = self.chromium_path
         self._browser = await self._pw.chromium.launch(**launch_kwargs)
@@ -217,7 +234,11 @@ class PlaywrightVM:
             return f"typed {len(action.text)} chars"
         if action.type == "key" and action.key:
             combo = xdotool_key_to_playwright(action.key)
-            await page.keyboard.press(combo)
+            try:
+                await page.keyboard.press(combo)
+            except PlaywrightError as exc:
+                logger.warning(f"key press {combo!r} rejected by the browser: {exc}")
+                return f"key press failed: unknown key {combo!r}"
             await page.wait_for_timeout(30)
             return f"pressed {combo}"
         if action.type == "scroll":

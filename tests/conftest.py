@@ -13,7 +13,7 @@ import pytest
 
 SEED = 20260516
 REPO = Path(__file__).resolve().parent.parent
-CHROMIUM = Path(os.environ.get("CHROMIUM_PATH", "/opt/pw-browsers/chromium"))
+CHROMIUM_ENV = os.environ.get("CHROMIUM_PATH", "/opt/pw-browsers/chromium")
 
 # Offline settings for the whole test session (never hits the network).
 os.environ["ANTHROPIC_API_KEY"] = ""
@@ -125,7 +125,8 @@ def api_client() -> Any:
 
 
 def sandbox_available() -> bool:
-    return CHROMIUM.exists()
+    """Empty CHROMIUM_PATH means "use the Playwright-managed Chromium" (CI)."""
+    return CHROMIUM_ENV == "" or Path(CHROMIUM_ENV).exists()
 
 
 requires_sandbox = pytest.mark.skipif(not sandbox_available(), reason="Chromium sandbox binary not available")

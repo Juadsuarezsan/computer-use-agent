@@ -109,3 +109,9 @@ async def test_dashboard_login_and_breadcrumb(vm: PlaywrightVM):
     alt["plan"] = [{"action": "click", "target": "#side-home"}, {"action": "task_complete", "text": "x"}]
     out = await run_task(task=spec.task, task_spec=alt, vm=vm, reasoner=StubReasoner())
     assert out.success is False
+
+
+async def test_unknown_key_does_not_crash(vm: PlaywrightVM):
+    await vm.reset({"id": "t", "app": "forms.html", "start": "#contact"})
+    assert "failed" in await vm.execute(Action(type="key", key="ctrl+alt+Bogus_Key"))
+    assert "pressed Control+Alt+Delete" == await vm.execute(Action(type="key", key="ctrl+alt+del"))

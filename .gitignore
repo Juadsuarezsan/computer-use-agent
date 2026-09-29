@@ -17,3 +17,10 @@ models/checkpoints/
 *.parquet
 logs/
 .ipynb_checkpoints/
+
+# runtime artefacts
+data/screenshots/
+data/audit.sqlite3
+.coverage
+coverage.xml
+htmlcov/
