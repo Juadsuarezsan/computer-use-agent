@@ -1,31 +1,102 @@
-"""20 custom Computer-Use eval tasks, organized by category."""
+"""Eval task catalogue: 20 hand-written tasks with deterministic ground truth.
 
-TASKS: list[dict] = [
-    # Form filling
-    {"id": "ff-01", "category": "form_filling", "task": "Open the contact form and submit name=Alice email=a@b.com"},
-    {"id": "ff-02", "category": "form_filling", "task": "Fill the registration form with fake test data"},
-    {"id": "ff-03", "category": "form_filling", "task": "Update the user profile address fields"},
-    {"id": "ff-04", "category": "form_filling", "task": "Complete the survey form (5 questions)"},
-    {"id": "ff-05", "category": "form_filling", "task": "Submit the support request form with subject and description"},
+Tasks live in ``data/eval/tasks.json`` (schema in ``docs/data_schema.md``).
+Each task names a fixture app, a start route, a checker and an optional
+scripted plan for the offline :class:`~src.agent.reasoner.StubReasoner`.
+"""
 
-    # Data extraction
-    {"id": "de-01", "category": "data_extraction", "task": "Extract the table from the open spreadsheet to a CSV"},
-    {"id": "de-02", "category": "data_extraction", "task": "Copy the email addresses from the contact list"},
-    {"id": "de-03", "category": "data_extraction", "task": "Read the order totals from the invoice page and save to clipboard"},
-    {"id": "de-04", "category": "data_extraction", "task": "Get the list of files in the My Documents folder"},
-    {"id": "de-05", "category": "data_extraction", "task": "Find the version number in the application's About dialog"},
+from __future__ import annotations
 
-    # Web navigation
-    {"id": "wn-01", "category": "web_navigation", "task": "Open Firefox and navigate to https://example.com"},
-    {"id": "wn-02", "category": "web_navigation", "task": "Search Google for 'best AI engineering portfolios 2026'"},
-    {"id": "wn-03", "category": "web_navigation", "task": "Log into the demo bank app with credentials demo/demo"},
-    {"id": "wn-04", "category": "web_navigation", "task": "Navigate the admin dashboard to the Users page"},
-    {"id": "wn-05", "category": "web_navigation", "task": "Use the breadcrumb to go back to home"},
+import json
+from collections import Counter
+from functools import lru_cache
+from pathlib import Path
+from typing import Any, Literal
 
-    # Multi-step workflow
-    {"id": "ms-01", "category": "multi_step", "task": "Open a folder, find the report.pdf, attach it to a new email, send to support@x.com"},
-    {"id": "ms-02", "category": "multi_step", "task": "Export the table from the spreadsheet as CSV, then upload it to the web form"},
-    {"id": "ms-03", "category": "multi_step", "task": "Take a screenshot, paste into an email, send to manager@x.com"},
-    {"id": "ms-04", "category": "multi_step", "task": "Download a file, unzip it, find the readme.md, copy a passage"},
-    {"id": "ms-05", "category": "multi_step", "task": "Open the calendar, find the next meeting, copy the agenda to clipboard"},
-]
+from pydantic import BaseModel, ConfigDict, Field
+
+from src.config import get_settings
+from src.sandbox.checkers import validate_checker
+
+Category = Literal["form_filling", "data_extraction", "web_navigation", "multi_step"]
+CATEGORIES: tuple[str, ...] = ("form_filling", "data_extraction", "web_navigation", "multi_step")
+CATEGORY_LABELS: dict[str, str] = {
+    "form_filling": "Form filling",
+    "data_extraction": "Data extraction",
+    "web_navigation": "Web navigation",
+    "multi_step": "Multi-step workflow",
+}
+TASKS_PER_CATEGORY = 5
+
+
+class TaskSpec(BaseModel):
+    """One eval task.
+
+    Attributes:
+        id: Stable id (``ff-01`` ...).
+        category: One of :data:`CATEGORIES`.
+        task: Natural-language instruction given to the agent.
+        app: Fixture HTML file in ``sandbox/webapps``.
+        start: Route/hash to open first (``#contact``).
+        checker: Ground-truth checker (see ``src/sandbox/checkers.py``).
+        plan: Scripted plan for the stub reasoner (selectors, not pixels).
+        max_steps: Step budget for the task.
+        ground_truth_source: ``manual`` — written and verified by hand.
+        notes: Free text about what makes the task hard.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=r"^(ff|de|wn|ms)-\d{2}$")
+    category: Category
+    task: str = Field(min_length=10, max_length=500)
+    app: str
+    start: str = ""
+    checker: dict[str, Any]
+    plan: list[dict[str, Any]] = Field(default_factory=list)
+    max_steps: int = Field(default=30, ge=1, le=100)
+    ground_truth_source: str = "manual"
+    notes: str = ""
+
+    def as_spec(self) -> dict[str, Any]:
+        """Plain dict for the orchestrator / VM."""
+        return self.model_dump()
+
+
+def load_tasks(path: str | Path | None = None) -> list[TaskSpec]:
+    """Load and validate the task catalogue.
+
+    Raises:
+        ValueError: on duplicated ids, wrong category balance or invalid checkers.
+        FileNotFoundError: when the JSON file or a fixture app is missing.
+    """
+    file = Path(path or get_settings().tasks_file)
+    payload = json.loads(file.read_text(encoding="utf-8"))
+    raw_tasks = payload["tasks"] if isinstance(payload, dict) else payload
+    tasks = [TaskSpec.model_validate(t) for t in raw_tasks]
+    ids = [t.id for t in tasks]
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicated task ids in catalogue")
+    counts: Counter[str] = Counter(str(t.category) for t in tasks)
+    for category in CATEGORIES:
+        if counts.get(category, 0) != TASKS_PER_CATEGORY:
+            raise ValueError(
+                f"category {category!r} has {counts.get(category, 0)} tasks, expected {TASKS_PER_CATEGORY}"
+            )
+    for task in tasks:
+        validate_checker(task.checker)
+    return tasks
+
+
+@lru_cache(maxsize=1)
+def default_tasks() -> tuple[TaskSpec, ...]:
+    """Cached catalogue from the configured ``TASKS_FILE``."""
+    return tuple(load_tasks())
+
+
+def get_task(task_id: str) -> TaskSpec | None:
+    """Return a task by id from the default catalogue."""
+    for task in default_tasks():
+        if task.id == task_id:
+            return task
+    return None

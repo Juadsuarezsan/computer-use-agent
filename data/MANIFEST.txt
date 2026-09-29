@@ -1,0 +1,10 @@
+# data/MANIFEST.txt — SHA-256 of every dataset artefact (regenerate: python scripts/make_manifest.py)
+# generated: 2026-09-29
+# eval set: hand-written by the author (ground_truth_source=manual); no LLM-generated data.
+
+12175fbb4fbeec482076f1f0e27b60f6e25b08e829b6276862d912b327d6b398  data/eval/tasks.json  (20584 bytes)
+84e4705f95293a28e405b423397708495eaa50cf5f66d07360e9c7cb76454f2f  data/eval/adversarial.json  (2207 bytes)
+73334b96499393376fd07582aac5ecee33117b75ff57fd1ee35521ee9946f816  sandbox/webapps/dashboard.html  (14427 bytes)
+2825780293059f5b993a0f5d8dba49f3ef952a4cb54ab39fbc061c3d0de59428  sandbox/webapps/forms.html  (14202 bytes)
+25486578e05ab28a1ccfad03442253ffe2b80a5219b4cc7f8d35aec4995520c0  sandbox/webapps/legacy.html  (12456 bytes)
+28e09718d1e8f25ee0a9b6d4469f01c0bce0b07fb631f25b96415a63a8a1143f  sandbox/webapps/workflow.html  (16990 bytes)

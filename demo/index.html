@@ -1,519 +1,300 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Computer Use Agent — Live Demo</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%237c5cff'/%3E%3C/svg%3E" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Use Agent — trace replay</title>
+<meta name="description" content="Step-by-step replay of 20 recorded computer-use tasks (screenshot, action, reasoning, safety verdict) on a sandboxed browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230f766e'/%3E%3Crect x='7' y='9' width='18' height='12' rx='2' fill='%23fff'/%3E%3C/svg%3E">
 <style>
-:root {
-    --bg: #07090f;
-    --bg-elev: #0d1220;
-    --bg-card: #12141c;
-    --bg-card-hover: #161924;
-    --border: rgba(255,255,255,0.08);
-    --border-strong: rgba(255,255,255,0.14);
-    --text: #e7ecf5;
-    --text-dim: #9aa3b8;
-    --text-faint: #5a5f6e;
-    --accent: #7c5cff;
-    --accent-2: #22d3ee;
-    --accent-3: #f472b6;
-    --success: #34d399;
-    --warning: #fbbf24;
-    --danger: #ff5a72;
-    --radius: 14px;
-    --radius-sm: 8px;
-    --max-w: 1180px;
+  :root {
+    --bg: #f6f7fb; --card: #ffffff; --ink: #0f172a; --muted: #5b6577; --line: #e3e6ee;
+    --accent: #0f766e; --accent-ink: #ffffff; --ok: #15803d; --ok-bg: #ecfdf5; --bad: #b91c1c; --bad-bg: #fef2f2;
+    --warn: #a16207; --warn-bg: #fefce8; --chip: #eef2ff; --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.6;
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1220; --card: #111a2b; --ink: #e5e9f2; --muted: #9aa5b8; --line: #23304a;
+      --accent: #2dd4bf; --accent-ink: #062b27; --ok: #4ade80; --ok-bg: #0f2a1c; --bad: #f87171; --bad-bg: #2c1212;
+      --warn: #fbbf24; --warn-bg: #2a220a; --chip: #1c2740;
+    }
   }
-  code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
-  a { color: inherit; text-decoration: none; }
-  ::selection { background: var(--accent); color: white; }
-  .bg-stage {
-    position: fixed; inset: 0; z-index: -2; pointer-events: none;
-    background:
-      radial-gradient(1200px 700px at 80% -10%, rgba(124,92,255,0.22), transparent 60%),
-      radial-gradient(1000px 600px at -10% 30%, rgba(34,211,238,0.16), transparent 60%),
-      radial-gradient(900px 500px at 50% 110%, rgba(244,114,182,0.16), transparent 55%),
-      linear-gradient(180deg, #06070d 0%, #0a0e1c 100%);
+  :root[data-theme="dark"] {
+    --bg: #0b1220; --card: #111a2b; --ink: #e5e9f2; --muted: #9aa5b8; --line: #23304a;
+    --accent: #2dd4bf; --accent-ink: #062b27; --ok: #4ade80; --ok-bg: #0f2a1c; --bad: #f87171; --bad-bg: #2c1212;
+    --warn: #fbbf24; --warn-bg: #2a220a; --chip: #1c2740;
   }
-  .bg-grid {
-    position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
-    background-size: 56px 56px;
-    mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, transparent 75%);
-  }
-  .cursor-glow {
-    position: fixed; top: 0; left: 0; width: 500px; height: 500px; z-index: -1;
-    background: radial-gradient(circle, rgba(124,92,255,0.22), transparent 55%);
-    border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%);
-    transition: opacity 0.4s ease;
-    mix-blend-mode: screen;
-  }
-  @media (max-width: 900px) { .cursor-glow { display: none; } }
-  nav {
-    position: sticky; top: 0; z-index: 50;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    background: rgba(8,9,14,0.72);
-    border-bottom: 1px solid var(--border);
-  }
-  .nav-inner {
-    max-width: var(--max-w);
-    margin: 0 auto;
-    padding: 14px 24px;
-    display: flex; align-items: center; justify-content: space-between; gap: 24px;
-  }
-  .logo {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600; font-size: 13px;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    display: flex; align-items: center; gap: 10px;
-  }
-  .logo-text {
-    background: linear-gradient(90deg, var(--accent-2), var(--accent));
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .logo-dot {
-    width: 8px; height: 8px;
-    background: var(--accent); border-radius: 50%;
-    box-shadow: 0 0 12px var(--accent);
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.85); }
-  }
-  .nav-cta {
-    padding: 8px 16px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    font-size: 13px; font-weight: 500;
-    transition: all 0.2s;
-  }
-  .nav-cta:hover { border-color: var(--accent); background: rgba(124,92,255,0.08); }
-  .container { max-width: var(--max-w); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-  header { padding: 80px 0 40px; text-align: center; }
-  .eyebrow {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 14px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-dim);
-    letter-spacing: 0.1em; text-transform: uppercase;
-    margin-bottom: 24px;
-  }
-  .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success); }
-  h1 {
-    font-size: clamp(36px, 5vw, 56px);
-    font-weight: 800; line-height: 1.05; letter-spacing: -0.02em;
-    margin-bottom: 18px;
-  }
-  h1 .grad {
-    background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent) 60%, var(--accent-3) 100%);
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-size: 200% auto;
-    animation: shine 8s linear infinite;
-  }
-  @keyframes shine {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
-  }
-  .subtitle {
-    color: var(--text-dim);
-    font-size: clamp(15px, 1.4vw, 18px);
-    max-width: 720px;
-    margin: 0 auto 36px;
-  }
-  .metric-row {
-    display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
-    margin: 36px 0 16px;
-  }
-  .metric { text-align: center; }
-  .metric-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 28px; font-weight: 700;
-    background: linear-gradient(90deg, var(--accent-2), var(--accent));
-    -webkit-background-clip: text; background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .metric-label {
-    font-size: 11px; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 0.12em;
-    margin-top: 4px;
-  }
-  section { padding: 48px 0; }
-  h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-  .section-sub { color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
-  .try-box {
-    background: linear-gradient(180deg, rgba(124,92,255,0.06), rgba(34,211,238,0.04));
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    padding: 28px;
-    margin-bottom: 36px;
-  }
-  .try-box label {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-dim);
-    letter-spacing: 0.12em; text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-  .try-box textarea {
-    width: 100%;
-    min-height: 80px;
-    padding: 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    resize: vertical;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .try-box textarea:focus { border-color: var(--accent); }
-  .try-box-actions {
-    display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center;
-  }
-  .btn {
-    padding: 10px 20px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-sm);
-    background: transparent;
-    color: var(--text);
-    font-family: 'Inter', sans-serif;
-    font-size: 14px; font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .btn:hover { border-color: var(--accent); background: rgba(124,92,255,0.08); }
-  .btn-primary {
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    border-color: transparent;
-    color: white;
-  }
-  .btn-primary:hover { box-shadow: 0 6px 24px rgba(124,92,255,0.4); }
-  .api-hint {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-faint);
-    margin-left: auto;
-  }
-  .api-hint code { color: var(--text-dim); }
-  .live-result {
-    margin-top: 20px;
-    padding: 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg-card);
-    display: none;
-  }
-  .live-result.show { display: block; }
-  .live-result .intent-pill {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 14px;
-    background: rgba(124,92,255,0.16);
-    border: 1px solid var(--accent);
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; color: var(--accent);
-  }
-  .live-result .confidence {
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; margin-left: 10px;
-  }
-  .alt-list { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
-  .alt-chip {
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-dim);
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 16px;
-  }
-  .card {
-    padding: 20px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-card);
-    transition: all 0.25s;
-    cursor: pointer;
-  }
-  .card:hover {
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-    transform: translateY(-2px);
-  }
-  .card .ticket {
-    font-size: 14px; color: var(--text);
-    margin-bottom: 16px; line-height: 1.5;
-  }
-  .card .ticket::before { content: '"'; color: var(--text-faint); margin-right: 2px; }
-  .card .ticket::after  { content: '"'; color: var(--text-faint); margin-left: 2px; }
-  .card .meta {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-  }
-  .card .intent {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; color: var(--accent);
-  }
-  .card .conf {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--text-dim);
-  }
-  .card .conf .bar {
-    display: inline-block;
-    width: 50px; height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin-left: 6px;
-    vertical-align: middle;
-    overflow: hidden;
-  }
-  .card .conf .bar > span {
-    display: block; height: 100%;
-    background: linear-gradient(90deg, var(--accent-2), var(--accent));
-  }
-  .card .latency {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; color: var(--text-faint);
-    margin-top: 8px;
-  }
-  .arch-section {
-    margin-top: 64px;
-    padding: 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--bg-card);
-  }
-  .arch-flow {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; line-height: 2;
-    color: var(--text-dim);
-    background: var(--bg);
-    padding: 20px;
-    border-radius: var(--radius-sm);
-    overflow-x: auto;
-    white-space: pre;
-    border: 1px solid var(--border);
-  }
-  .arch-flow .key { color: var(--accent-2); }
-  .arch-flow .val { color: var(--text); }
-  .arch-flow .note { color: var(--text-faint); }
-  footer {
-    padding: 60px 0 40px;
-    text-align: center;
-    color: var(--text-faint);
-    font-size: 13px;
-    border-top: 1px solid var(--border);
-    margin-top: 80px;
-  }
-  footer a { color: var(--text-dim); border-bottom: 1px dotted var(--text-faint); }
-  footer a:hover { color: var(--accent-2); }
-
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); }
+  header { padding: 28px 16px 12px; max-width: 1180px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 820px; }
+  .topline { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--chip); color: var(--ink); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn); }
+  main { max-width: 1180px; margin: 0 auto; padding: 8px 16px 48px; display: grid; gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h2 { margin: 0 0 10px; font-size: 17px; }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .tasks { max-height: 70vh; overflow: auto; }
+  .cat { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 12px 0 6px; }
+  .task { width: 100%; text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; color: var(--ink); cursor: pointer; font: inherit; font-size: 13px; display: flex; gap: 8px; align-items: flex-start; }
+  .task:hover { border-color: var(--accent); }
+  .task.active { border-color: var(--accent); background: var(--chip); }
+  .task .id { font-family: var(--mono); font-size: 12px; color: var(--muted); min-width: 44px; }
+  .task .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; flex: none; }
+  .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+  .player img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; display: block; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+  .btn { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 8px; padding: 8px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+  input[type=range] { flex: 1; min-width: 120px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .kv { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+  .kv b { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .mono { font-family: var(--mono); font-size: 13px; word-break: break-word; }
+  .verdict { border-radius: 8px; padding: 10px 12px; font-size: 13px; border: 1px solid; }
+  .verdict.ok { background: var(--ok-bg); color: var(--ok); border-color: var(--ok); }
+  .verdict.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad); }
+  .verdict.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .stat b { font-size: 24px; display: block; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .live { display: grid; gap: 10px; }
+  .live input[type=text] { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+  .spinner { width: 18px; height: 18px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .msg { font-size: 13px; color: var(--muted); }
+  .msg.err { color: var(--bad); }
+  footer { max-width: 1180px; margin: 0 auto; padding: 0 16px 32px; color: var(--muted); font-size: 13px; }
+  .steps-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .steps-strip button { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 6px; padding: 3px 8px; font: inherit; font-size: 12px; cursor: pointer; }
+  .steps-strip button.active { border-color: var(--accent); background: var(--chip); }
+  .steps-strip button.blocked { border-color: var(--bad); color: var(--bad); }
 </style>
 </head>
 <body>
-<div class="bg-stage"></div>
-<div class="bg-grid"></div>
-<div class="cursor-glow" id="cursorGlow"></div>
-
-<nav>
-  <div class="nav-inner">
-    <a href="../" class="logo">
-      <span class="logo-dot"></span>
-      <span class="logo-text">COMPUTER·USE·AGENT</span>
-    </a>
-    <a href="https://github.com/Juadsuarezsan/computer-use-agent" class="nav-cta" target="_blank" rel="noopener">Repo →</a>
+<header>
+  <h1>Computer Use Agent — trace replay</h1>
+  <p>Pick one of the 20 evaluation tasks and step through the recorded run: the screenshot the agent saw, the action it chose, its reasoning, the safety-layer verdict and the verifier verdict. Success is decided by a deterministic checker on the sandbox DOM, not by the agent's own claim.</p>
+  <div class="topline">
+    <span class="badge warn" id="provenance">Loading…</span>
+    <a class="badge" href="https://github.com/Juadsuarezsan/computer-use-agent">GitHub repo</a>
+    <a class="badge" href="https://github.com/Juadsuarezsan/computer-use-agent/blob/main/eval/RESULTS.md">eval/RESULTS.md</a>
+    <a class="badge" href="https://github.com/Juadsuarezsan/computer-use-agent/blob/main/docs/safety.md">docs/safety.md</a>
   </div>
-</nav>
+</header>
 
-<div class="container">
-  <header>
-    <div class="eyebrow"><span class="eyebrow-dot"></span> Anthropic Computer Use API · safety gate · screenshot replay</div>
-    <h1>Browser tasks completed by Claude,<br/><span class="grad">with a safety pre-check first.</span></h1>
-    <p class="subtitle">Drives a Chromium browser to complete real tasks (fill forms, book reservations, scrape data). Every action passes a safety classifier before execution.</p>
-    <div class="metric-row"><div class="metric"><div class="metric-value">0.78</div><div class="metric-label">Task success</div></div><div class="metric"><div class="metric-value">0.99</div><div class="metric-label">Safety pre-check</div></div><div class="metric"><div class="metric-value">32</div><div class="metric-label">Median steps</div></div><div class="metric"><div class="metric-value">3</div><div class="metric-label">Action types</div></div></div>
-  </header>
+<main>
+  <section class="card">
+    <div class="stats" id="stats"></div>
+  </section>
 
-  <section>
-    <h2>Try it yourself</h2>
-    <p class="section-sub">Type an input. If the project's FastAPI backend is running on <code>localhost:8000</code>, this calls it live; otherwise it shows the nearest pre-baked example.</p>
-    <div class="try-box">
-      <label for="ticket-input">Input</label>
-      <textarea id="ticket-input" placeholder="Book the cheapest direct flight from BOG to MIA on July 15."></textarea>
-      <div class="try-box-actions">
-        <button class="btn btn-primary" id="classify-btn">Run →</button>
-        <button class="btn" id="random-btn">Try a random example</button>
-        <span class="api-hint">backend: <code>http://localhost:8000</code></span>
+  <div class="grid">
+    <section class="card tasks" id="task-list"><h2>Tasks</h2></section>
+
+    <section class="card player">
+      <h2 id="task-title">Select a task</h2>
+      <p class="msg" id="task-text"></p>
+      <img id="shot" alt="screenshot of the sandbox at the current step" src="">
+      <div class="controls">
+        <button class="btn ghost" id="prev">◀ Prev</button>
+        <button class="btn" id="play">▶ Play</button>
+        <button class="btn ghost" id="next">Next ▶</button>
+        <input type="range" id="scrub" min="1" max="1" value="1" aria-label="step">
+        <span class="msg" id="step-label"></span>
       </div>
-      <div class="live-result" id="live-result"></div>
-    </div>
+      <div class="steps-strip" id="strip"></div>
+      <div class="meta" style="margin-top:12px">
+        <div class="kv"><b>Action</b><div class="mono" id="action"></div></div>
+        <div class="kv"><b>Reasoning</b><div id="reasoning"></div></div>
+        <div class="kv"><b>Execution</b><div class="mono" id="exec"></div></div>
+        <div class="kv"><b>Step latency</b><div id="latency"></div></div>
+      </div>
+      <div class="meta" style="margin-top:10px">
+        <div class="verdict ok" id="safety"></div>
+        <div class="verdict ok" id="verifier"></div>
+        <div class="verdict ok" id="outcome"></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Safety layer in action (adversarial probes recorded on the sandbox)</h2>
+    <table id="safety-table"><thead><tr><th>Probe</th><th>Action proposed</th><th>Verdict</th><th>Reason</th></tr></thead><tbody></tbody></table>
   </section>
 
-  <section>
-    <h2>Pre-baked examples</h2>
-    <p class="section-sub">Real inputs the project handles, with outputs captured ahead of time. Click any card to drop it into the try-box above.</p>
-    <div class="grid" id="cards-grid"></div>
-  </section>
-
-  <section>
-    <div class="arch-section">
-      <h2>Pipeline</h2>
-      <p class="section-sub">How an input becomes a decision.</p>
-      <div class="arch-flow"><span class="key">in:</span>  <span class="val">natural-language task</span>
-  <span class="note">↓</span>
-<span class="key">step 1:</span>  <span class="val">Claude plans the action sequence</span>
-  <span class="note">↓</span>
-<span class="key">step 2:</span>  <span class="val">safety classifier scores each proposed action</span>
-  <span class="note">↓</span>
-<span class="key">step 3:</span>  <span class="val">blocked? → reject + log · else → execute via CDP</span>
-  <span class="note">↓</span>
-<span class="key">step 4:</span>  <span class="val">screenshot diff → confirm state change</span>
-  <span class="note">↓</span>
-<span class="key">step 5:</span>  <span class="val">loop until goal reached or step budget exhausted</span>
-  <span class="note">↓</span>
-<span class="key">out:</span>  <span class="val">task outcome + screenshot trace</span></div>
+  <section class="card">
+    <h2>Live backend (optional)</h2>
+    <p class="msg">If you are running the API (<code>make api</code>), point this box at it and execute a catalogue task for real. Without a backend the page only replays the recorded traces.</p>
+    <div class="live">
+      <input type="text" id="backend" placeholder="http://localhost:8000" value="http://localhost:8000">
+      <div class="controls">
+        <button class="btn" id="run-live">Run selected task on the backend</button>
+        <span id="live-status" class="msg"></span>
+      </div>
+      <pre class="mono" id="live-out" style="white-space:pre-wrap;margin:0"></pre>
     </div>
   </section>
-</div>
+</main>
 
 <footer>
-  Part of <a href="https://juadsuarezsan.github.io/ai-portfolio/">the Juan David Suárez portfolio</a> ·
-  <a href="https://github.com/Juadsuarezsan/computer-use-agent">Source code</a>
+  Juan David Suárez Sánchez · <a href="mailto:juadsuarezsan@unal.edu.co">juadsuarezsan@unal.edu.co</a> ·
+  <a href="https://www.linkedin.com/in/juan-david-suarez-sanchez-31ab281b7">LinkedIn</a> ·
+  <a href="https://github.com/Juadsuarezsan/computer-use-agent">source</a>. Model pinned for the real agent:
+  <code>claude-sonnet-4-5-20250929</code> with the <code>computer_20250124</code> tool.
 </footer>
 
 <script>
-  const cursorGlow = document.getElementById('cursorGlow');
-  document.addEventListener('mousemove', (e) => {
-    cursorGlow.style.left = e.clientX + 'px';
-    cursorGlow.style.top = e.clientY + 'px';
-  });
+(function () {
+  var CATS = { form_filling: 'Form filling', data_extraction: 'Data extraction', web_navigation: 'Web navigation', multi_step: 'Multi-step workflow' };
+  var data = null, current = null, stepIndex = 0, timer = null;
+  var $ = function (id) { return document.getElementById(id); };
 
-  let predictions = [];
-  const API_BASE = 'http://localhost:8000';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
-  fetch('predictions.json').then(r => r.json()).then(data => {
-    predictions = data.predictions;
-    renderCards();
-  });
+  function renderStats() {
+    var traces = data.traces;
+    var steps = traces.reduce(function (a, t) { return a + t.total_steps; }, 0);
+    var lat = traces.reduce(function (a, t) { return a + t.latency_ms; }, 0) / traces.length;
+    $('stats').innerHTML =
+      '<div class="stat"><b>' + data.success_count + '/' + data.n_tasks + '</b><span>tasks passed their DOM checker</span></div>' +
+      '<div class="stat"><b>' + (steps / traces.length).toFixed(1) + '</b><span>average steps per task</span></div>' +
+      '<div class="stat"><b>' + (lat / 1000).toFixed(2) + ' s</b><span>average latency per task (no LLM)</span></div>' +
+      '<div class="stat"><b>' + data.safety_demo.filter(function (s) { return s.blocked; }).length + '/' + data.safety_demo.length + '</b><span>adversarial probes blocked</span></div>' +
+      '<div class="stat"><b>$0.00</b><span>cost per task — no model tokens in these traces</span></div>';
+    $('provenance').textContent = 'Recorded with the scripted StubReasoner on the Chromium sandbox — no LLM. Claude runs: pending (requires ANTHROPIC_API_KEY).';
+  }
 
-  function renderCards() {
-    const grid = document.getElementById('cards-grid');
-    grid.innerHTML = '';
-    predictions.forEach(p => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const confPct = Math.round(p.confidence * 100);
-      card.innerHTML = `
-        <div class="ticket">${escapeHtml(p.ticket)}</div>
-        <div class="meta">
-          <span class="intent">${escapeHtml(p.top_intent)}</span>
-          <span class="conf">${confPct}%<span class="bar"><span style="width:${confPct}%"></span></span></span>
-        </div>
-        <div class="latency">latency: ${p.inference_ms.toFixed(0)} ms · alt: ${p.alternatives.map(a => a.intent).join(' · ')}</div>
-      `;
-      card.addEventListener('click', () => {
-        document.getElementById('ticket-input').value = p.ticket;
-        document.getElementById('ticket-input').scrollIntoView({behavior: 'smooth', block: 'center'});
+  function renderTaskList() {
+    var host = $('task-list');
+    Object.keys(CATS).forEach(function (cat) {
+      var h = document.createElement('div'); h.className = 'cat'; h.textContent = CATS[cat]; host.appendChild(h);
+      data.traces.filter(function (t) { return t.category === cat; }).forEach(function (t) {
+        var b = document.createElement('button');
+        b.className = 'task'; b.setAttribute('data-id', t.id);
+        b.innerHTML = '<span class="dot ' + (t.success ? 'ok' : 'bad') + '"></span><span class="id">' + esc(t.id) + '</span><span>' + esc(t.task) + '</span>';
+        b.addEventListener('click', function () { select(t.id); });
+        host.appendChild(b);
       });
-      grid.appendChild(card);
     });
   }
 
-  document.getElementById('classify-btn').addEventListener('click', classifyLive);
-  document.getElementById('random-btn').addEventListener('click', () => {
-    if (!predictions.length) return;
-    const p = predictions[Math.floor(Math.random() * predictions.length)];
-    document.getElementById('ticket-input').value = p.ticket;
+  function select(id) {
+    current = data.traces.filter(function (t) { return t.id === id; })[0];
+    stepIndex = 0;
+    stopPlay();
+    document.querySelectorAll('.task').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-id') === id); });
+    $('task-title').textContent = current.id + ' · ' + CATS[current.category];
+    $('task-text').textContent = current.task + (current.notes ? ' — ' + current.notes : '');
+    $('scrub').max = current.steps.length + 1;
+    var strip = $('strip'); strip.innerHTML = '';
+    current.steps.forEach(function (s, i) {
+      var b = document.createElement('button');
+      b.textContent = s.step; if (!s.safety.allowed) b.classList.add('blocked');
+      b.addEventListener('click', function () { stepIndex = i; renderStep(); });
+      strip.appendChild(b);
+    });
+    var fin = document.createElement('button'); fin.textContent = 'final';
+    fin.addEventListener('click', function () { stepIndex = current.steps.length; renderStep(); });
+    strip.appendChild(fin);
+    renderStep();
+    try { localStorage.setItem('cua-demo-task', id); } catch (e) { /* storage may be unavailable */ }
+  }
+
+  function renderStep() {
+    var n = current.steps.length;
+    var isFinal = stepIndex >= n;
+    var s = isFinal ? null : current.steps[stepIndex];
+    $('shot').src = isFinal ? current.final_screenshot : s.screenshot;
+    $('scrub').value = stepIndex + 1;
+    $('step-label').textContent = isFinal ? 'final screen (after step ' + n + ')' : 'step ' + (stepIndex + 1) + ' of ' + n;
+    Array.prototype.forEach.call($('strip').children, function (b, i) { b.classList.toggle('active', i === stepIndex); });
+    $('prev').disabled = stepIndex === 0; $('next').disabled = isFinal;
+    if (isFinal) {
+      $('action').textContent = '—'; $('reasoning').textContent = 'Loop finished: ' + current.final_output;
+      $('exec').textContent = 'checker: ' + JSON.stringify(current.checker); $('latency').textContent = current.latency_ms + ' ms total';
+      setVerdict('safety', 'ok', 'Safety: ' + current.steps.filter(function (x) { return !x.safety.allowed; }).length + ' blocked action(s) in this run');
+      setVerdict('verifier', current.verifier_failures ? 'warn' : 'ok', 'Verifier failures: ' + current.verifier_failures);
+    } else {
+      $('action').textContent = s.action_summary; $('reasoning').textContent = s.reasoning;
+      $('exec').textContent = s.execution_result; $('latency').textContent = s.latency_ms + ' ms';
+      setVerdict('safety', s.safety.allowed ? (s.safety.requires_human ? 'warn' : 'ok') : 'bad',
+        'Safety: ' + (s.safety.allowed ? 'allowed' : 'BLOCKED') + (s.safety.rule ? ' · rule ' + s.safety.rule : '') + (s.safety.reason ? ' · ' + s.safety.reason : ''));
+      setVerdict('verifier', s.verifier.ok ? 'ok' : 'warn', 'Verifier: ' + (s.verifier.ok ? 'ok' : 'FAIL') + (s.verifier.note ? ' · ' + s.verifier.note : ''));
+    }
+    setVerdict('outcome', current.success ? 'ok' : 'bad', 'Ground truth: ' + (current.success ? 'PASS' : 'FAIL') + ' (' + current.total_steps + ' steps, ' + current.latency_ms + ' ms)');
+  }
+
+  function setVerdict(id, cls, text) { var el = $(id); el.className = 'verdict ' + cls; el.textContent = text; }
+
+  function stopPlay() { if (timer) { clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; } }
+  $('play').addEventListener('click', function () {
+    if (!current) return;
+    if (timer) { stopPlay(); return; }
+    $('play').textContent = '⏸ Pause';
+    timer = setInterval(function () {
+      if (stepIndex >= current.steps.length) { stopPlay(); return; }
+      stepIndex += 1; renderStep();
+    }, 900);
+  });
+  $('prev').addEventListener('click', function () { if (current && stepIndex > 0) { stepIndex -= 1; renderStep(); } });
+  $('next').addEventListener('click', function () { if (current && stepIndex < current.steps.length) { stepIndex += 1; renderStep(); } });
+  $('scrub').addEventListener('input', function () { if (current) { stepIndex = Number(this.value) - 1; renderStep(); } });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') $('next').click(); if (e.key === 'ArrowLeft') $('prev').click();
   });
 
-  async function classifyLive() {
-    const text = document.getElementById('ticket-input').value.trim();
-    const result = document.getElementById('live-result');
-    if (!text) {
-      result.innerHTML = '<span style="color:var(--warning)">Please enter some text first.</span>';
-      result.classList.add('show');
-      return;
-    }
-    result.innerHTML = '<span style="color:var(--text-dim)">Running…</span>';
-    result.classList.add('show');
-
-    try {
-      const r = await fetch(`${API_BASE}/api/classify`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text}),
-      });
-      if (!r.ok) throw new Error('backend non-200');
-      const data = await r.json();
-      renderLive(data, true);
-    } catch (e) {
-      const fallback = nearestBakedMatch(text);
-      renderLive(fallback, false);
-    }
-  }
-
-  function renderLive(d, isLive) {
-    const result = document.getElementById('live-result');
-    const confPct = Math.round(d.confidence * 100);
-    const alts = (d.alternatives || []).map(a =>
-      `<span class="alt-chip">${escapeHtml(a.intent)} (${Math.round(a.confidence*100)}%)</span>`).join('');
-    result.innerHTML = `
-      <div>
-        <span class="intent-pill">→ ${escapeHtml(d.top_intent)}</span>
-        <span class="confidence">${confPct}% confident · ${d.inference_ms ? d.inference_ms.toFixed(0) + ' ms' : 'cached'}</span>
-      </div>
-      <div class="alt-list">${alts}</div>
-      <div style="margin-top:14px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint)">
-        ${isLive ? 'source: live POST /api/classify' : 'source: nearest pre-baked example (start the backend for live inference)'}
-      </div>
-    `;
-  }
-
-  function nearestBakedMatch(text) {
-    const lo = text.toLowerCase();
-    let best = predictions[0]; let bestScore = -1;
-    predictions.forEach(p => {
-      const tokens = new Set(p.ticket.toLowerCase().split(/\W+/).filter(Boolean));
-      const myTok = new Set(lo.split(/\W+/).filter(Boolean));
-      let overlap = 0;
-      myTok.forEach(t => { if (tokens.has(t)) overlap++; });
-      if (overlap > bestScore) { bestScore = overlap; best = p; }
+  function renderSafety() {
+    var body = $('safety-table').querySelector('tbody');
+    data.safety_demo.forEach(function (s) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td class="mono">' + esc(s.id) + '</td><td class="mono">' + esc(s.action_summary) + '</td>' +
+        '<td><span class="verdict ' + (s.blocked ? 'bad' : 'ok') + '" style="padding:2px 8px">' + (s.blocked ? 'blocked' : 'executed') + '</span></td>' +
+        '<td>' + esc(s.reason || '') + ' <span class="msg">(expected rule: ' + esc(s.expected_rule) + ')</span></td>';
+      body.appendChild(tr);
     });
-    return best;
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  }
+  $('run-live').addEventListener('click', function () {
+    if (!current) { $('live-status').textContent = 'Select a task first.'; return; }
+    var base = $('backend').value.replace(/\/+$/, '');
+    $('live-status').innerHTML = '<span class="spinner"></span> running ' + esc(current.id) + ' on ' + esc(base) + ' …';
+    $('live-status').className = 'msg'; $('live-out').textContent = '';
+    var ctl = new AbortController(); var to = setTimeout(function () { ctl.abort(); }, 180000);
+    fetch(base + '/api/run-task', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
+      body: JSON.stringify({ task: current.task, task_id: current.id })
+    }).then(function (r) {
+      if (!r.ok) { return r.text().then(function (t) { throw new Error('HTTP ' + r.status + ': ' + t.slice(0, 300)); }); }
+      return r.json();
+    }).then(function (res) {
+      clearTimeout(to);
+      $('live-status').textContent = (res.success ? 'PASS' : 'FAIL') + ' · ' + res.total_steps + ' steps · ' + res.latency_ms + ' ms · reasoner ' + res.reasoner + ' · cost $' + Number(res.cost_usd || 0).toFixed(4) + ' · trace ' + res.trace_id;
+      $('live-out').textContent = res.steps.map(function (s) { return s.step + '. ' + JSON.stringify(s.action) + (s.safety_blocked ? '  [BLOCKED: ' + s.safety_reason + ']' : '') + '\n   ' + s.reasoning; }).join('\n');
+    }).catch(function (err) {
+      clearTimeout(to);
+      $('live-status').className = 'msg err';
+      $('live-status').textContent = 'Could not reach the backend: ' + err.message + '. Start it with `make api` (CORS_ORIGINS must include this page).';
+    });
+  });
+
+  fetch('predictions.json').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (json) {
+    data = json; renderStats(); renderTaskList(); renderSafety();
+    var remembered = null; try { remembered = localStorage.getItem('cua-demo-task'); } catch (e) { /* ignore */ }
+    var first = data.traces.some(function (t) { return t.id === remembered; }) ? remembered : data.traces[0].id;
+    select(first);
+  }).catch(function (err) {
+    $('provenance').textContent = 'Could not load predictions.json: ' + err.message + ' (serve this folder over HTTP, e.g. python -m http.server).';
+  });
+})();
 </script>
 </body>
 </html>

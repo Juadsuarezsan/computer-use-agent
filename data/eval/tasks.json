@@ -1,0 +1,432 @@
+{
+  "version": "1.0.0",
+  "description": "20 hand-written Computer Use tasks (5 per category) over the local sandbox web apps in sandbox/webapps. Ground truth is a deterministic checker evaluated against the DOM or the agent's final answer. 'plan' is the scripted DOM-oracle plan used only by the offline StubReasoner baseline.",
+  "ground_truth_source": "manual (written and verified by hand by the author; see docs/data_schema.md)",
+  "display": {"width": 1024, "height": 768},
+  "tasks": [
+    {
+      "id": "ff-01",
+      "category": "form_filling",
+      "task": "Open the Contact form and submit it with full name 'Alice' and e-mail 'a@b.com'.",
+      "app": "forms.html",
+      "start": "#home",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#contact-result", "attr": "data-name", "value": "Alice"},
+        {"type": "dom_attr_equals", "selector": "#contact-result", "attr": "data-email", "value": "a@b.com"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#nav-contact"},
+        {"action": "click", "target": "#contact-name"},
+        {"action": "type", "text": "Alice"},
+        {"action": "click", "target": "#contact-email"},
+        {"action": "type", "text": "a@b.com"},
+        {"action": "click", "target": "#contact-submit"},
+        {"action": "task_complete", "text": "Contact form submitted for Alice / a@b.com"}
+      ],
+      "max_steps": 15,
+      "notes": "Two required fields; the e-mail is validated client-side."
+    },
+    {
+      "id": "ff-02",
+      "category": "form_filling",
+      "task": "Register a new account with username 'tester42', e-mail 'tester@example.com' and password 'Secret123!'. Accept the terms of service but do not subscribe to the newsletter.",
+      "app": "forms.html",
+      "start": "#home",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#register-result", "attr": "data-username", "value": "tester42"},
+        {"type": "dom_attr_equals", "selector": "#register-result", "attr": "data-email", "value": "tester@example.com"},
+        {"type": "dom_attr_equals", "selector": "#register-result", "attr": "data-terms", "value": "true"},
+        {"type": "dom_attr_equals", "selector": "#register-result", "attr": "data-newsletter", "value": "false"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#nav-register"},
+        {"action": "click", "target": "#reg-username"},
+        {"action": "type", "text": "tester42"},
+        {"action": "click", "target": "#reg-email"},
+        {"action": "type", "text": "tester@example.com"},
+        {"action": "click", "target": "#reg-password"},
+        {"action": "type", "text": "Secret123!"},
+        {"action": "click", "target": "#reg-terms"},
+        {"action": "click", "target": "#reg-submit"},
+        {"action": "task_complete", "text": "Account tester42 registered"}
+      ],
+      "max_steps": 18,
+      "notes": "Checkbox that must be ticked and one that must stay unticked; password minimum length."
+    },
+    {
+      "id": "ff-03",
+      "category": "form_filling",
+      "task": "In the Profile form, replace the address with street 'Calle 45 #12-30', city 'Bogotá' and postal code '110111', then save the changes.",
+      "app": "forms.html",
+      "start": "#home",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#profile-result", "attr": "data-street", "value": "Calle 45 #12-30"},
+        {"type": "dom_attr_equals", "selector": "#profile-result", "attr": "data-city", "value": "Bogotá"},
+        {"type": "dom_attr_equals", "selector": "#profile-result", "attr": "data-zip", "value": "110111"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#nav-profile"},
+        {"action": "click", "target": "#profile-street"},
+        {"action": "key", "key": "ctrl+a"},
+        {"action": "type", "text": "Calle 45 #12-30"},
+        {"action": "click", "target": "#profile-city"},
+        {"action": "key", "key": "ctrl+a"},
+        {"action": "type", "text": "Bogotá"},
+        {"action": "click", "target": "#profile-zip"},
+        {"action": "key", "key": "ctrl+a"},
+        {"action": "type", "text": "110111"},
+        {"action": "click", "target": "#profile-save"},
+        {"action": "task_complete", "text": "Address updated"}
+      ],
+      "max_steps": 20,
+      "notes": "Fields are pre-filled: the agent must clear them before typing (select-all)."
+    },
+    {
+      "id": "ff-04",
+      "category": "form_filling",
+      "task": "Complete the 5-question Customer survey: answer Yes to question 1, 'Weekly' to question 2, rating 4 for question 3, choose only E-mail as contact channel, and write 'None' in question 5. Submit it.",
+      "app": "forms.html",
+      "start": "#home",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#survey-result", "attr": "data-q1", "value": "yes"},
+        {"type": "dom_attr_equals", "selector": "#survey-result", "attr": "data-q2", "value": "weekly"},
+        {"type": "dom_attr_equals", "selector": "#survey-result", "attr": "data-q3", "value": "4"},
+        {"type": "dom_attr_equals", "selector": "#survey-result", "attr": "data-q4", "value": "email"},
+        {"type": "dom_attr_equals", "selector": "#survey-result", "attr": "data-q5", "value": "None"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#nav-survey"},
+        {"action": "click", "target": "#q1-yes"},
+        {"action": "click", "target": "#q2-weekly"},
+        {"action": "click", "target": "#q3-4"},
+        {"action": "click", "target": "#q4-email"},
+        {"action": "click", "target": "#q5"},
+        {"action": "type", "text": "None"},
+        {"action": "click", "target": "#survey-submit"},
+        {"action": "task_complete", "text": "Survey submitted"}
+      ],
+      "max_steps": 16,
+      "notes": "Radio groups, a checkbox group and a free-text answer."
+    },
+    {
+      "id": "ff-05",
+      "category": "form_filling",
+      "task": "Open a Support request with subject 'Cannot export report', category Billing and description 'The export button is disabled'.",
+      "app": "forms.html",
+      "start": "#home",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#support-result", "attr": "data-subject", "value": "Cannot export report"},
+        {"type": "dom_attr_equals", "selector": "#support-result", "attr": "data-category", "value": "Billing"},
+        {"type": "dom_attr_equals", "selector": "#support-result", "attr": "data-description", "value": "The export button is disabled"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#nav-support"},
+        {"action": "click", "target": "#support-subject"},
+        {"action": "type", "text": "Cannot export report"},
+        {"action": "click", "target": "#cat-billing"},
+        {"action": "click", "target": "#support-description"},
+        {"action": "type", "text": "The export button is disabled"},
+        {"action": "click", "target": "#support-submit"},
+        {"action": "task_complete", "text": "Support request opened"}
+      ],
+      "max_steps": 15,
+      "notes": "Textarea plus radio category; the ticket number is generated by the app."
+    },
+
+    {
+      "id": "de-01",
+      "category": "data_extraction",
+      "task": "Open the Spreadsheet module of LegacyERP and report the total Q3 sales amount in USD (the value in the 'Total Q3' row).",
+      "app": "legacy.html",
+      "start": "#welcome",
+      "checker": {"type": "all", "checkers": [
+        {"type": "hash_equals", "value": "#spreadsheet"},
+        {"type": "answer_number", "value": 48250}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#side-spreadsheet"},
+        {"action": "task_complete", "answer_from": "q3_total"}
+      ],
+      "max_steps": 10,
+      "notes": "Value is only visible on screen; the app has no export."
+    },
+    {
+      "id": "de-02",
+      "category": "data_extraction",
+      "task": "Open the Contacts module and report every e-mail address in the contact list, separated by commas.",
+      "app": "legacy.html",
+      "start": "#welcome",
+      "checker": {"type": "answer_set", "pattern": "[\\w.+-]+@[\\w.-]+\\.\\w+", "values": ["ana.ruiz@acme.io", "bruno.lima@globex.com", "carla.mendes@initech.net", "diego.torres@umbrella.org"]},
+      "plan": [
+        {"action": "click", "target": "#side-contacts"},
+        {"action": "task_complete", "answer_from": "email_1,email_2,email_3,email_4"}
+      ],
+      "max_steps": 10,
+      "notes": "Four values; order does not matter, but none may be missing or invented."
+    },
+    {
+      "id": "de-03",
+      "category": "data_extraction",
+      "task": "Open the Invoices module, open invoice INV-2024-017 and report its order total (including tax).",
+      "app": "legacy.html",
+      "start": "#welcome",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#invoice-detail", "attr": "data-invoice", "value": "inv-017"},
+        {"type": "answer_number", "value": 1299.5}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#side-invoices"},
+        {"action": "click", "target": "#inv-017"},
+        {"action": "task_complete", "answer_from": "invoice_total"}
+      ],
+      "max_steps": 10,
+      "notes": "Requires clicking a table row; the total is computed on open."
+    },
+    {
+      "id": "de-04",
+      "category": "data_extraction",
+      "task": "Open the Files module, expand the 'My Documents' folder and list the names of all files it contains.",
+      "app": "legacy.html",
+      "start": "#welcome",
+      "checker": {"type": "answer_set", "pattern": "[\\w-]+\\.(?:pdf|xlsx|txt|png|exe)", "values": ["report.pdf", "budget.xlsx", "notes.txt", "photo.png"]},
+      "plan": [
+        {"action": "click", "target": "#side-files"},
+        {"action": "click", "target": "#folder-my-documents"},
+        {"action": "task_complete", "answer_from": "file_1,file_2,file_3,file_4"}
+      ],
+      "max_steps": 10,
+      "notes": "A second folder (Downloads) is a distractor: its file must not be listed."
+    },
+    {
+      "id": "de-05",
+      "category": "data_extraction",
+      "task": "Open Help > About LegacyERP and report the application version number.",
+      "app": "legacy.html",
+      "start": "#welcome",
+      "checker": {"type": "answer_contains", "value": "4.2.1-legacy"},
+      "plan": [
+        {"action": "click", "target": "#menu-help"},
+        {"action": "click", "target": "#help-about"},
+        {"action": "task_complete", "answer_from": "version"}
+      ],
+      "max_steps": 10,
+      "notes": "Menu drop-down then modal dialog."
+    },
+
+    {
+      "id": "wn-01",
+      "category": "web_navigation",
+      "task": "Log into the Nimbus Admin dashboard with username 'demo' and password 'demo'.",
+      "app": "dashboard.html",
+      "start": "#/login",
+      "checker": {"type": "all", "checkers": [
+        {"type": "hash_equals", "value": "#/home"},
+        {"type": "dom_text_contains", "selector": "#user-badge", "value": "demo"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#username"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#password"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#login-btn"},
+        {"action": "task_complete", "text": "Logged in as demo"}
+      ],
+      "max_steps": 10,
+      "notes": "Wrong credentials show an inline error."
+    },
+    {
+      "id": "wn-02",
+      "category": "web_navigation",
+      "task": "Log into Nimbus Admin (demo/demo) and open the Users page.",
+      "app": "dashboard.html",
+      "start": "#/login",
+      "checker": {"type": "hash_equals", "value": "#/users"},
+      "plan": [
+        {"action": "click", "target": "#username"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#password"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#login-btn"},
+        {"action": "click", "target": "#side-users"},
+        {"action": "task_complete", "text": "Users page opened"}
+      ],
+      "max_steps": 12,
+      "notes": "Login followed by sidebar navigation."
+    },
+    {
+      "id": "wn-03",
+      "category": "web_navigation",
+      "task": "Log into Nimbus Admin (demo/demo), go to Users and open the detail page of the user 'Carla Mendes'.",
+      "app": "dashboard.html",
+      "start": "#/login",
+      "checker": {"type": "all", "checkers": [
+        {"type": "hash_equals", "value": "#/users/3"},
+        {"type": "dom_text_equals", "selector": "#detail-name", "value": "Carla Mendes"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#username"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#password"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#login-btn"},
+        {"action": "click", "target": "#side-users"},
+        {"action": "click", "target": "#user-3"},
+        {"action": "task_complete", "text": "Opened Carla Mendes"}
+      ],
+      "max_steps": 14,
+      "notes": "Three-level navigation; the user must be found by name in a table."
+    },
+    {
+      "id": "wn-04",
+      "category": "web_navigation",
+      "task": "You are on a user detail page. Use the breadcrumb at the top to go back to Home.",
+      "app": "dashboard.html",
+      "start": "#/users/3?s=demo",
+      "checker": {"type": "all", "checkers": [
+        {"type": "hash_equals", "value": "#/home"},
+        {"type": "dom_attr_equals", "selector": "#app", "attr": "data-last-nav", "value": "crumb-home"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#crumb-home"},
+        {"action": "task_complete", "text": "Back on Home via breadcrumb"}
+      ],
+      "max_steps": 8,
+      "notes": "The sidebar Home button also reaches Home but the checker requires the breadcrumb."
+    },
+    {
+      "id": "wn-05",
+      "category": "web_navigation",
+      "task": "Log into Nimbus Admin (demo/demo), open Users and search for 'Mendes' using the search box.",
+      "app": "dashboard.html",
+      "start": "#/login",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#results-count", "attr": "data-term", "value": "mendes"},
+        {"type": "dom_attr_equals", "selector": "#results-count", "attr": "data-count", "value": "1"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#username"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#password"},
+        {"action": "type", "text": "demo"},
+        {"action": "click", "target": "#login-btn"},
+        {"action": "click", "target": "#side-users"},
+        {"action": "click", "target": "#user-search"},
+        {"action": "type", "text": "Mendes"},
+        {"action": "click", "target": "#search-btn"},
+        {"action": "task_complete", "text": "Searched for Mendes"}
+      ],
+      "max_steps": 15,
+      "notes": "Login, navigation and a search interaction."
+    },
+
+    {
+      "id": "ms-01",
+      "category": "multi_step",
+      "task": "Find the file report.pdf and send it as an attachment in a new e-mail to support@x.com with subject 'Report'.",
+      "app": "workflow.html",
+      "start": "#orders",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-to", "value": "support@x.com"},
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-subject", "value": "Report"},
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-attachment", "value": "report.pdf"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#tab-email"},
+        {"action": "click", "target": "#email-to"},
+        {"action": "type", "text": "support@x.com"},
+        {"action": "click", "target": "#email-subject"},
+        {"action": "type", "text": "Report"},
+        {"action": "click", "target": "#attach-btn"},
+        {"action": "click", "target": "[data-target=\"attach:report.pdf\"]"},
+        {"action": "click", "target": "#send-btn"},
+        {"action": "task_complete", "text": "E-mail with report.pdf sent to support@x.com"}
+      ],
+      "max_steps": 18,
+      "notes": "Attachment picker is a secondary panel; recipient is validated."
+    },
+    {
+      "id": "ms-02",
+      "category": "multi_step",
+      "task": "Export the Orders table as CSV, then upload the exported file through the Upload tab.",
+      "app": "workflow.html",
+      "start": "#orders",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#upload-result", "attr": "data-file", "value": "orders.csv"},
+        {"type": "dom_attr_equals", "selector": "#upload-result", "attr": "data-rows", "value": "6"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#export-csv"},
+        {"action": "click", "target": "#tab-upload"},
+        {"action": "click", "target": "[data-target=\"pick:orders.csv\"]"},
+        {"action": "click", "target": "#upload-btn"},
+        {"action": "task_complete", "text": "orders.csv exported and uploaded"}
+      ],
+      "max_steps": 14,
+      "notes": "The file to upload only exists after the export step."
+    },
+    {
+      "id": "ms-03",
+      "category": "multi_step",
+      "task": "Capture a screenshot from the Files tab and e-mail it to manager@x.com with subject 'Screenshot'.",
+      "app": "workflow.html",
+      "start": "#orders",
+      "checker": {"type": "all", "checkers": [
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-to", "value": "manager@x.com"},
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-subject", "value": "Screenshot"},
+        {"type": "dom_attr_equals", "selector": "#last-sent", "attr": "data-attachment", "value": "screenshot.png"}
+      ]},
+      "plan": [
+        {"action": "click", "target": "#tab-files"},
+        {"action": "click", "target": "#capture-btn"},
+        {"action": "click", "target": "#tab-email"},
+        {"action": "click", "target": "#email-to"},
+        {"action": "type", "text": "manager@x.com"},
+        {"action": "click", "target": "#email-subject"},
+        {"action": "type", "text": "Screenshot"},
+        {"action": "click", "target": "#attach-btn"},
+        {"action": "click", "target": "[data-target=\"attach:screenshot.png\"]"},
+        {"action": "click", "target": "#send-btn"},
+        {"action": "task_complete", "text": "Screenshot e-mailed to manager@x.com"}
+      ],
+      "max_steps": 20,
+      "notes": "Cross-tab workflow: create an artifact, then use it elsewhere."
+    },
+    {
+      "id": "ms-04",
+      "category": "multi_step",
+      "task": "In Downloads, download archive.zip, unzip it, open readme.md and copy the 'Installation' passage into the Notes tab.",
+      "app": "workflow.html",
+      "start": "#orders",
+      "checker": {"type": "dom_text_contains", "selector": "#notes", "value": "run make install"},
+      "plan": [
+        {"action": "click", "target": "#tab-downloads"},
+        {"action": "click", "target": "#download-btn"},
+        {"action": "click", "target": "#unzip-btn"},
+        {"action": "click", "target": "#open-readme"},
+        {"action": "click", "target": "[data-target=\"copy:installation\"]"},
+        {"action": "click", "target": "#tab-notes"},
+        {"action": "click", "target": "#paste-btn"},
+        {"action": "task_complete", "text": "Installation passage pasted into Notes"}
+      ],
+      "max_steps": 18,
+      "notes": "Seven dependent steps; each control appears only after the previous step."
+    },
+    {
+      "id": "ms-05",
+      "category": "multi_step",
+      "task": "Open the Calendar, find the next meeting after today (2026-09-29) and copy its agenda into the Notes tab.",
+      "app": "workflow.html",
+      "start": "#orders",
+      "checker": {"type": "dom_text_contains", "selector": "#notes", "value": "Review Q4 roadmap and hiring plan"},
+      "plan": [
+        {"action": "click", "target": "#tab-calendar"},
+        {"action": "click", "target": "[data-target=\"copy-agenda:2\"]"},
+        {"action": "click", "target": "#tab-notes"},
+        {"action": "click", "target": "#paste-btn"},
+        {"action": "task_complete", "text": "Agenda of Q4 planning pasted into Notes"}
+      ],
+      "max_steps": 14,
+      "notes": "Requires date reasoning: the first meeting in the list is in the past."
+    }
+  ]
+}

@@ -1,23 +1,90 @@
-    [project]
-    name = "computer-use-agent"
-    version = "0.1.0"
-    description = "Computer Use Agent — Anthropic Computer Use API + VM"
-    requires-python = ">=3.11,<3.14"
-    license = { text = "MIT" }
-    dependencies = [
-        "fastapi==0.115.0",
-"uvicorn[standard]==0.32.0",
-"pydantic==2.9.2",
-"pydantic-settings==2.6.0",
-"python-dotenv==1.0.1",
-"httpx==0.27.2",
-"tenacity==9.0.0",
-"loguru==0.7.2",
-"anthropic==0.39.0",
-"langgraph==0.2.45",
-"pillow==10.4.0",
-"psycopg[binary,pool]==3.2.3",
-    ]
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
 
-    [project.optional-dependencies]
-    dev = ["pytest==8.3.3", "pytest-asyncio==0.24.0", "ruff==0.6.9", "black==24.10.0", "mypy==1.11.2"]
+[project]
+name = "computer-use-agent"
+version = "1.0.0"
+description = "Computer Use Agent — Anthropic Computer Use tool + LangGraph loop + sandboxed browser/desktop with a safety layer"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "Juan David Suárez Sánchez", email = "juadsuarezsan@unal.edu.co" }]
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.32.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.6.0",
+    "python-dotenv==1.0.1",
+    "httpx==0.27.2",
+    "tenacity==9.0.0",
+    "loguru==0.7.2",
+    "anthropic==0.49.0",
+    "langgraph==0.2.45",
+    "pillow==10.4.0",
+    "psycopg[binary,pool]==3.2.3",
+    "slowapi==0.1.9",
+    "playwright==1.63.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.24.0",
+    "pytest-cov==7.1.0",
+    "pytest-mock==3.16.0",
+    "respx==0.23.1",
+    "ruff==0.6.9",
+    "black==24.10.0",
+    "mypy==1.11.2",
+    "types-requests==2.32.0.20241016",
+]
+notebook = ["jupyter==1.1.1", "nbconvert==7.16.4"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+extend-exclude = [".venv", "notebooks", "data", "demo"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "D"]
+ignore = ["D100", "D104", "D105", "D107", "D203", "D212", "D401", "E501"]
+per-file-ignores = { "tests/*" = ["D"], "scripts/*" = ["D"], "eval/*" = ["D"] }
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+extend-exclude = "(\\.venv|notebooks|data|demo)"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+exclude = ["^\\.venv/", "^notebooks/", "^demo/"]
+
+[[tool.mypy.overrides]]
+module = ["langgraph.*", "slowapi.*", "playwright.*", "psycopg_pool.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q --strict-markers"
+markers = ["sandbox: needs the Playwright Chromium sandbox (skipped when the binary is missing)"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::PendingDeprecationWarning"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
