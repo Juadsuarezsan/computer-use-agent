@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620" font-family="Inter, Arial, Helvetica, sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b91c1c"/>
+    </marker>
+  </defs>
+  <rect width="1180" height="620" fill="#f8fafc"/>
+  <text x="24" y="34" font-size="22" font-weight="700" fill="#0f172a">Computer Use Agent — architecture</text>
+  <text x="24" y="56" fill="#475569">FastAPI transport → LangGraph loop (observe · verify · reason · safety · execute) → sandbox VM · audit log · eval harness</text>
+
+  <!-- Client / API -->
+  <rect x="24" y="90" width="200" height="72" rx="10" fill="#e0f2fe" stroke="#0369a1"/>
+  <text x="124" y="118" text-anchor="middle" font-weight="700" fill="#0c4a6e">Client / demo</text>
+  <text x="124" y="140" text-anchor="middle" fill="#0c4a6e" font-size="12">POST /api/run-task · GET /api/tasks</text>
+
+  <rect x="24" y="200" width="200" height="96" rx="10" fill="#e0f2fe" stroke="#0369a1"/>
+  <text x="124" y="228" text-anchor="middle" font-weight="700" fill="#0c4a6e">FastAPI (src/api)</text>
+  <text x="124" y="250" text-anchor="middle" fill="#0c4a6e" font-size="12">Pydantic 422 · slowapi · CORS env</text>
+  <text x="124" y="270" text-anchor="middle" fill="#0c4a6e" font-size="12">/health · /api/audit/recent</text>
+  <line x1="124" y1="162" x2="124" y2="200" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- LangGraph loop -->
+  <rect x="280" y="90" width="620" height="300" rx="14" fill="#ffffff" stroke="#334155" stroke-dasharray="6 4"/>
+  <text x="296" y="114" font-weight="700" fill="#334155">LangGraph loop (src/agent/orchestrator.py) — one iteration per step, trace_id on every node</text>
+
+  <rect x="300" y="140" width="130" height="64" rx="10" fill="#dcfce7" stroke="#15803d"/>
+  <text x="365" y="166" text-anchor="middle" font-weight="700" fill="#14532d">observe</text>
+  <text x="365" y="186" text-anchor="middle" font-size="12" fill="#14532d">screenshot + DOM map</text>
+
+  <rect x="450" y="140" width="130" height="64" rx="10" fill="#fef9c3" stroke="#a16207"/>
+  <text x="515" y="166" text-anchor="middle" font-weight="700" fill="#713f12">verify</text>
+  <text x="515" y="186" text-anchor="middle" font-size="12" fill="#713f12">did step N-1 work?</text>
+
+  <rect x="600" y="140" width="130" height="64" rx="10" fill="#ede9fe" stroke="#6d28d9"/>
+  <text x="665" y="166" text-anchor="middle" font-weight="700" fill="#4c1d95">reason</text>
+  <text x="665" y="186" text-anchor="middle" font-size="12" fill="#4c1d95">Claude computer tool</text>
+
+  <rect x="750" y="140" width="130" height="64" rx="10" fill="#fee2e2" stroke="#b91c1c"/>
+  <text x="815" y="166" text-anchor="middle" font-weight="700" fill="#7f1d1d">safety</text>
+  <text x="815" y="186" text-anchor="middle" font-size="12" fill="#7f1d1d">blocklist · HITL</text>
+
+  <rect x="600" y="260" width="130" height="64" rx="10" fill="#dcfce7" stroke="#15803d"/>
+  <text x="665" y="286" text-anchor="middle" font-weight="700" fill="#14532d">execute</text>
+  <text x="665" y="306" text-anchor="middle" font-size="12" fill="#14532d">click · type · key · scroll</text>
+
+  <line x1="430" y1="172" x2="450" y2="172" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="580" y1="172" x2="600" y2="172" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="730" y1="172" x2="750" y2="172" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M815,204 L815,292 L730,292" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M600,292 L365,292 L365,204" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="470" y="284" text-anchor="middle" font-size="12" fill="#475569">loop until task_complete / max_steps</text>
+  <path d="M880,172 L900,172" fill="none" stroke="#b91c1c" stroke-width="2" marker-end="url(#arrow-red)"/>
+  <text x="890" y="160" text-anchor="middle" font-size="11" fill="#b91c1c">blocked → END</text>
+
+  <text x="296" y="356" font-size="12" fill="#475569">Reasoners: ClaudeComputerUseReasoner (anthropic SDK, computer_20250124, tenacity, timeout) · StubReasoner (scripted DOM oracle, offline baseline)</text>
+  <text x="296" y="376" font-size="12" fill="#475569">Verifiers: HeuristicVerifier (screen digest) · ClaudeVerifier (before/after images) · Final validator: numbered rubric (src/eval/judge.py)</text>
+
+  <line x1="224" y1="248" x2="280" y2="248" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- VM drivers -->
+  <rect x="940" y="90" width="216" height="300" rx="14" fill="#ffffff" stroke="#334155" stroke-dasharray="6 4"/>
+  <text x="1048" y="114" text-anchor="middle" font-weight="700" fill="#334155">VM protocol</text>
+
+  <rect x="956" y="130" width="184" height="70" rx="10" fill="#dbeafe" stroke="#1d4ed8"/>
+  <text x="1048" y="154" text-anchor="middle" font-weight="700" fill="#1e3a8a">PlaywrightVM</text>
+  <text x="1048" y="172" text-anchor="middle" font-size="12" fill="#1e3a8a">headless Chromium</text>
+  <text x="1048" y="188" text-anchor="middle" font-size="12" fill="#1e3a8a">file:// fixture apps · DOM checkers</text>
+
+  <rect x="956" y="212" width="184" height="70" rx="10" fill="#dbeafe" stroke="#1d4ed8"/>
+  <text x="1048" y="236" text-anchor="middle" font-weight="700" fill="#1e3a8a">XdoToolVM</text>
+  <text x="1048" y="254" text-anchor="middle" font-size="12" fill="#1e3a8a">Xvfb + scrot + xdotool</text>
+  <text x="1048" y="270" text-anchor="middle" font-size="12" fill="#1e3a8a">Docker sandbox · noVNC</text>
+
+  <rect x="956" y="294" width="184" height="70" rx="10" fill="#dbeafe" stroke="#1d4ed8"/>
+  <text x="1048" y="318" text-anchor="middle" font-weight="700" fill="#1e3a8a">FakeVM</text>
+  <text x="1048" y="336" text-anchor="middle" font-size="12" fill="#1e3a8a">deterministic, in-memory</text>
+  <text x="1048" y="352" text-anchor="middle" font-size="12" fill="#1e3a8a">unit tests / CI</text>
+
+  <line x1="900" y1="292" x2="940" y2="292" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Bottom row -->
+  <rect x="24" y="430" width="270" height="150" rx="12" fill="#fff7ed" stroke="#c2410c"/>
+  <text x="159" y="456" text-anchor="middle" font-weight="700" fill="#7c2d12">Audit log (src/storage)</text>
+  <text x="40" y="482" font-size="12" fill="#7c2d12">task_runs · task_steps</text>
+  <text x="40" y="500" font-size="12" fill="#7c2d12">PostgreSQL pool (DATABASE_URL)</text>
+  <text x="40" y="518" font-size="12" fill="#7c2d12">SQLite fallback (dev / tests)</text>
+  <text x="40" y="536" font-size="12" fill="#7c2d12">trace_id · latency · tokens · cost_usd</text>
+  <text x="40" y="554" font-size="12" fill="#7c2d12">safety verdict per step</text>
+
+  <rect x="330" y="430" width="300" height="150" rx="12" fill="#f0fdf4" stroke="#15803d"/>
+  <text x="480" y="456" text-anchor="middle" font-weight="700" fill="#14532d">Eval harness (src/eval, eval/run.py)</text>
+  <text x="346" y="482" font-size="12" fill="#14532d">20 tasks · 4 categories · checkers on DOM</text>
+  <text x="346" y="500" font-size="12" fill="#14532d">baselines: stub oracle, no-verifier ablation</text>
+  <text x="346" y="518" font-size="12" fill="#14532d">safety ablation: 16 adversarial actions</text>
+  <text x="346" y="536" font-size="12" fill="#14532d">eval/runs/*.json → eval/RESULTS.md</text>
+  <text x="346" y="554" font-size="12" fill="#14532d">LLM-judge rubric (pending key)</text>
+
+  <rect x="666" y="430" width="230" height="150" rx="12" fill="#f5f3ff" stroke="#6d28d9"/>
+  <text x="781" y="456" text-anchor="middle" font-weight="700" fill="#4c1d95">Observability</text>
+  <text x="682" y="482" font-size="12" fill="#4c1d95">loguru structured logs</text>
+  <text x="682" y="500" font-size="12" fill="#4c1d95">node in/out state per step</text>
+  <text x="682" y="518" font-size="12" fill="#4c1d95">LangSmith via LANGCHAIN_* env</text>
+  <text x="682" y="536" font-size="12" fill="#4c1d95">cost table pinned per model</text>
+
+  <rect x="930" y="430" width="226" height="150" rx="12" fill="#ecfeff" stroke="#0e7490"/>
+  <text x="1043" y="456" text-anchor="middle" font-weight="700" fill="#155e75">Sandbox web apps</text>
+  <text x="946" y="482" font-size="12" fill="#155e75">forms.html · legacy.html</text>
+  <text x="946" y="500" font-size="12" fill="#155e75">dashboard.html · workflow.html</text>
+  <text x="946" y="518" font-size="12" fill="#155e75">1024×768 · no network · data-field</text>
+  <text x="946" y="536" font-size="12" fill="#155e75">deterministic state via JS</text>
+
+  <line x1="124" y1="296" x2="124" y2="430" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="480" y1="390" x2="480" y2="430" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="1048" y1="390" x2="1048" y2="430" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="24" y="606" font-size="11" fill="#64748b">Pinned model: claude-sonnet-4-5-20250929 · tool computer_20250124 · offline rows in eval/RESULTS.md are StubReasoner (no LLM) and say so.</text>
+</svg>
