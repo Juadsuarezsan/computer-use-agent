@@ -64,12 +64,14 @@ def build_graph(vm, reasoner, max_steps: int):
         }
 
     def route(state: LoopState) -> str:
-        return END if state.get("finished") else "step"
+        return END if state.get("finished") else "agent_step"
 
+    # The node name must not collide with a state key ("step" is one):
+    # langgraph raises ValueError at add_node time otherwise.
     g = StateGraph(LoopState)
-    g.add_node("step", step_node)
-    g.set_entry_point("step")
-    g.add_conditional_edges("step", route, {END: END, "step": "step"})
+    g.add_node("agent_step", step_node)
+    g.set_entry_point("agent_step")
+    g.add_conditional_edges("agent_step", route, {END: END, "agent_step": "agent_step"})
     return g.compile()
 
 
