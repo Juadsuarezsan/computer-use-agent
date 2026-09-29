@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acme Forms Portal</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 768px; overflow: hidden; font-family: Arial, Helvetica, sans-serif; background: #f3f4f6; color: #111827; font-size: 15px; }
+  header { height: 56px; background: #1e3a8a; color: #fff; display: flex; align-items: center; padding: 0 20px; gap: 8px; }
+  header h1 { font-size: 18px; margin-right: 24px; }
+  header button { background: #2b4bb5; color: #fff; border: 1px solid #4b6bd6; padding: 8px 14px; border-radius: 4px; font-size: 14px; cursor: pointer; }
+  header button.active { background: #fff; color: #1e3a8a; }
+  main { padding: 28px 40px; }
+  .card { background: #fff; border: 1px solid #d1d5db; border-radius: 6px; padding: 24px 28px; width: 620px; }
+  h2 { font-size: 20px; margin-bottom: 16px; }
+  label { display: block; font-size: 13px; color: #374151; margin: 12px 0 4px; }
+  input[type=text], input[type=email], input[type=password], textarea { width: 100%; padding: 9px 10px; border: 1px solid #9ca3af; border-radius: 4px; font-size: 15px; background: #fff; }
+  textarea { height: 64px; resize: none; }
+  .row { display: flex; gap: 16px; }
+  .row > div { flex: 1; }
+  .choices { display: flex; gap: 10px; margin-top: 4px; }
+  .choices label { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 12px; border: 1px solid #9ca3af; border-radius: 4px; background: #f9fafb; font-size: 14px; cursor: pointer; }
+  .choices input { width: 16px; height: 16px; }
+  .actions { margin-top: 18px; display: flex; gap: 12px; align-items: center; }
+  .btn { padding: 10px 18px; border-radius: 4px; border: 1px solid #1e3a8a; background: #1e3a8a; color: #fff; font-size: 15px; cursor: pointer; }
+  .btn.secondary { background: #fff; color: #1e3a8a; }
+  .error { color: #b91c1c; font-size: 13px; margin-top: 8px; min-height: 16px; }
+  .result { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 16px; border-radius: 6px; font-size: 15px; line-height: 1.6; }
+  .hidden { display: none !important; }
+  .home p { line-height: 1.6; color: #374151; }
+  .home ul { margin: 12px 0 0 20px; color: #374151; line-height: 1.8; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Acme Forms Portal</h1>
+  <button id="nav-home" data-view="home">Home</button>
+  <button id="nav-contact" data-view="contact">Contact</button>
+  <button id="nav-register" data-view="register">Register</button>
+  <button id="nav-profile" data-view="profile">Profile</button>
+  <button id="nav-survey" data-view="survey">Survey</button>
+  <button id="nav-support" data-view="support">Support</button>
+</header>
+<main>
+  <section id="view-home" class="card home">
+    <h2>Welcome</h2>
+    <p>This portal hosts the customer-facing forms of Acme Corp. Use the navigation bar to open a form.</p>
+    <ul>
+      <li>Contact — send us a message</li>
+      <li>Register — create an account</li>
+      <li>Profile — update your postal address</li>
+      <li>Survey — 5 quick questions</li>
+      <li>Support — open a support request</li>
+    </ul>
+  </section>
+
+  <section id="view-contact" class="card hidden">
+    <h2>Contact us</h2>
+    <form id="contact-form" novalidate>
+      <label for="contact-name">Full name</label>
+      <input type="text" id="contact-name" name="name" placeholder="Your name">
+      <label for="contact-email">E-mail</label>
+      <input type="email" id="contact-email" name="email" placeholder="you@example.com">
+      <label for="contact-message">Message (optional)</label>
+      <textarea id="contact-message" name="message"></textarea>
+      <div class="actions">
+        <button type="submit" class="btn" id="contact-submit">Send message</button>
+        <button type="button" class="btn secondary" id="contact-reset">Clear</button>
+      </div>
+      <div class="error" id="contact-error"></div>
+    </form>
+    <div id="contact-result" class="result hidden"></div>
+  </section>
+
+  <section id="view-register" class="card hidden">
+    <h2>Create your account</h2>
+    <form id="register-form" novalidate>
+      <div class="row">
+        <div><label for="reg-username">Username</label><input type="text" id="reg-username" name="username"></div>
+        <div><label for="reg-email">E-mail</label><input type="email" id="reg-email" name="email"></div>
+      </div>
+      <label for="reg-password">Password (min 8 chars)</label>
+      <input type="password" id="reg-password" name="password">
+      <div class="choices" style="margin-top:14px">
+        <label><input type="checkbox" id="reg-terms" name="terms"> I accept the terms of service</label>
+        <label><input type="checkbox" id="reg-newsletter" name="newsletter"> Subscribe to newsletter</label>
+      </div>
+      <div class="actions"><button type="submit" class="btn" id="reg-submit">Register</button></div>
+      <div class="error" id="reg-error"></div>
+    </form>
+    <div id="register-result" class="result hidden"></div>
+  </section>
+
+  <section id="view-profile" class="card hidden">
+    <h2>Your profile</h2>
+    <form id="profile-form" novalidate>
+      <div class="row">
+        <div><label for="profile-first">First name</label><input type="text" id="profile-first" name="first" value="Juan"></div>
+        <div><label for="profile-last">Last name</label><input type="text" id="profile-last" name="last" value="Suárez"></div>
+      </div>
+      <label for="profile-street">Street address</label>
+      <input type="text" id="profile-street" name="street" value="Carrera 7 #1-10">
+      <div class="row">
+        <div><label for="profile-city">City</label><input type="text" id="profile-city" name="city" value="Medellín"></div>
+        <div><label for="profile-zip">Postal code</label><input type="text" id="profile-zip" name="zip" value="050001"></div>
+      </div>
+      <div class="actions"><button type="submit" class="btn" id="profile-save">Save changes</button></div>
+      <div class="error" id="profile-error"></div>
+    </form>
+    <div id="profile-result" class="result hidden"></div>
+  </section>
+
+  <section id="view-survey" class="card hidden">
+    <h2>Customer survey</h2>
+    <form id="survey-form" novalidate>
+      <label>1. Would you recommend Acme to a colleague?</label>
+      <div class="choices">
+        <label><input type="radio" name="q1" id="q1-yes" value="yes"> Yes</label>
+        <label><input type="radio" name="q1" id="q1-no" value="no"> No</label>
+      </div>
+      <label>2. How often do you use the product?</label>
+      <div class="choices">
+        <label><input type="radio" name="q2" id="q2-daily" value="daily"> Daily</label>
+        <label><input type="radio" name="q2" id="q2-weekly" value="weekly"> Weekly</label>
+        <label><input type="radio" name="q2" id="q2-monthly" value="monthly"> Monthly</label>
+      </div>
+      <label>3. Overall satisfaction (1 = poor, 5 = excellent)</label>
+      <div class="choices">
+        <label><input type="radio" name="q3" id="q3-1" value="1"> 1</label>
+        <label><input type="radio" name="q3" id="q3-2" value="2"> 2</label>
+        <label><input type="radio" name="q3" id="q3-3" value="3"> 3</label>
+        <label><input type="radio" name="q3" id="q3-4" value="4"> 4</label>
+        <label><input type="radio" name="q3" id="q3-5" value="5"> 5</label>
+      </div>
+      <label>4. Preferred contact channel</label>
+      <div class="choices">
+        <label><input type="checkbox" name="q4" id="q4-email" value="email"> E-mail</label>
+        <label><input type="checkbox" name="q4" id="q4-sms" value="sms"> SMS</label>
+        <label><input type="checkbox" name="q4" id="q4-phone" value="phone"> Phone</label>
+      </div>
+      <label for="q5">5. Anything else?</label>
+      <input type="text" id="q5" name="q5" placeholder="Optional comment">
+      <div class="actions"><button type="submit" class="btn" id="survey-submit">Submit survey</button></div>
+      <div class="error" id="survey-error"></div>
+    </form>
+    <div id="survey-result" class="result hidden"></div>
+  </section>
+
+  <section id="view-support" class="card hidden">
+    <h2>Support request</h2>
+    <form id="support-form" novalidate>
+      <label for="support-subject">Subject</label>
+      <input type="text" id="support-subject" name="subject">
+      <label>Category</label>
+      <div class="choices">
+        <label><input type="radio" name="category" id="cat-billing" value="Billing"> Billing</label>
+        <label><input type="radio" name="category" id="cat-technical" value="Technical"> Technical</label>
+        <label><input type="radio" name="category" id="cat-other" value="Other"> Other</label>
+      </div>
+      <label for="support-description">Description</label>
+      <textarea id="support-description" name="description"></textarea>
+      <div class="actions"><button type="submit" class="btn" id="support-submit">Open request</button></div>
+      <div class="error" id="support-error"></div>
+    </form>
+    <div id="support-result" class="result hidden"></div>
+  </section>
+</main>
+<script>
+(function () {
+  var views = ['home', 'contact', 'register', 'profile', 'survey', 'support'];
+  function show(view) {
+    if (views.indexOf(view) < 0) view = 'home';
+    views.forEach(function (v) {
+      document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+      document.getElementById('nav-' + v).classList.toggle('active', v === view);
+    });
+    if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
+  }
+  document.querySelectorAll('header button').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-view')); });
+  });
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+  var ticket = 1000;
+  function val(id) { return document.getElementById(id).value.trim(); }
+  function checked(name) {
+    return Array.prototype.slice.call(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function (i) { return i.value; });
+  }
+  function done(formId, resultId, attrs, text) {
+    var r = document.getElementById(resultId);
+    Object.keys(attrs).forEach(function (k) { r.setAttribute('data-' + k, attrs[k]); });
+    r.textContent = text;
+    r.classList.remove('hidden');
+    document.getElementById(formId).classList.add('hidden');
+  }
+  function emailOk(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
+
+  document.getElementById('contact-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = document.getElementById('contact-error');
+    if (!val('contact-name')) { err.textContent = 'Name is required.'; return; }
+    if (!emailOk(val('contact-email'))) { err.textContent = 'Enter a valid e-mail.'; return; }
+    err.textContent = '';
+    done('contact-form', 'contact-result', { name: val('contact-name'), email: val('contact-email'), message: val('contact-message') },
+      'Thank you ' + val('contact-name') + ', we will reply to ' + val('contact-email') + '.');
+  });
+  document.getElementById('contact-reset').addEventListener('click', function () { document.getElementById('contact-form').reset(); });
+
+  document.getElementById('register-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = document.getElementById('reg-error');
+    if (val('reg-username').length < 3) { err.textContent = 'Username must have at least 3 characters.'; return; }
+    if (!emailOk(val('reg-email'))) { err.textContent = 'Enter a valid e-mail.'; return; }
+    if (val('reg-password').length < 8) { err.textContent = 'Password must have at least 8 characters.'; return; }
+    if (!document.getElementById('reg-terms').checked) { err.textContent = 'You must accept the terms.'; return; }
+    err.textContent = '';
+    done('register-form', 'register-result', { username: val('reg-username'), email: val('reg-email'), terms: 'true',
+      newsletter: String(document.getElementById('reg-newsletter').checked) },
+      'Account ' + val('reg-username') + ' created. A confirmation was sent to ' + val('reg-email') + '.');
+  });
+
+  document.getElementById('profile-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = document.getElementById('profile-error');
+    if (!val('profile-street') || !val('profile-city') || !val('profile-zip')) { err.textContent = 'Address fields are required.'; return; }
+    err.textContent = '';
+    done('profile-form', 'profile-result', { street: val('profile-street'), city: val('profile-city'), zip: val('profile-zip') },
+      'Profile saved: ' + val('profile-street') + ', ' + val('profile-city') + ' ' + val('profile-zip') + '.');
+  });
+
+  document.getElementById('survey-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = document.getElementById('survey-error');
+    var q1 = checked('q1'), q2 = checked('q2'), q3 = checked('q3'), q4 = checked('q4');
+    if (!q1.length || !q2.length || !q3.length) { err.textContent = 'Questions 1-3 are required.'; return; }
+    err.textContent = '';
+    done('survey-form', 'survey-result', { q1: q1[0], q2: q2[0], q3: q3[0], q4: q4.join(','), q5: val('q5') },
+      'Survey received (' + q1[0] + ', ' + q2[0] + ', rating ' + q3[0] + ', channels: ' + (q4.join(', ') || 'none') + ').');
+  });
+
+  document.getElementById('support-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var err = document.getElementById('support-error');
+    var cat = checked('category');
+    if (!val('support-subject')) { err.textContent = 'Subject is required.'; return; }
+    if (!cat.length) { err.textContent = 'Pick a category.'; return; }
+    if (!val('support-description')) { err.textContent = 'Description is required.'; return; }
+    err.textContent = '';
+    ticket += 1;
+    done('support-form', 'support-result', { subject: val('support-subject'), category: cat[0], description: val('support-description'), ticket: 'SR-' + ticket },
+      'Request SR-' + ticket + ' opened (' + cat[0] + '): ' + val('support-subject'));
+  });
+
+  window.__sandboxReset = function () { show(location.hash.slice(1)); };
+  show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>

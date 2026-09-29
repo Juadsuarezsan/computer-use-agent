@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LegacyERP 4.2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 768px; overflow: hidden; font-family: Tahoma, Verdana, sans-serif; font-size: 14px; background: #c0c0c0; color: #000; }
+  .titlebar { height: 30px; background: linear-gradient(#0a246a, #3a6ea5); color: #fff; display: flex; align-items: center; padding: 0 10px; font-weight: bold; }
+  .menubar { height: 28px; background: #d4d0c8; border-bottom: 1px solid #808080; display: flex; align-items: center; padding: 0 6px; gap: 2px; position: relative; }
+  .menubar button { background: transparent; border: 1px solid transparent; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+  .menubar button:hover, .menubar button.open { border-color: #808080; background: #e8e8e8; }
+  .dropdown { position: absolute; top: 27px; left: 250px; background: #f0f0f0; border: 1px solid #808080; box-shadow: 2px 2px 0 #404040; min-width: 180px; }
+  .dropdown button { display: block; width: 100%; text-align: left; padding: 7px 14px; }
+  .layout { display: flex; height: 710px; }
+  .sidebar { width: 190px; background: #d4d0c8; border-right: 1px solid #808080; padding: 10px 8px; }
+  .sidebar button { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 9px 10px; border: 2px outset #fff; background: #d4d0c8; font-size: 14px; cursor: pointer; }
+  .sidebar button.active { border-style: inset; background: #e8e8e8; }
+  .content { flex: 1; padding: 16px 20px; background: #fff; margin: 8px; border: 2px inset #808080; overflow: hidden; }
+  h2 { font-size: 16px; margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #808080; padding: 7px 10px; text-align: left; }
+  th { background: #e8e8e8; }
+  td.num { text-align: right; font-family: "Courier New", monospace; }
+  tr.total td { font-weight: bold; background: #f4f4f4; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: #ffffcc; }
+  .panel { margin-top: 14px; border: 1px solid #808080; padding: 12px; background: #fafafa; }
+  .tree button { display: block; background: none; border: none; font-size: 14px; padding: 6px 4px; cursor: pointer; text-align: left; }
+  .tree .files { margin-left: 26px; }
+  .hidden { display: none !important; }
+  .modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: center; }
+  .modal { width: 380px; background: #f0f0f0; border: 2px outset #fff; box-shadow: 3px 3px 0 #404040; }
+  .modal .titlebar { height: 26px; font-size: 13px; }
+  .modal .body { padding: 18px; line-height: 1.7; }
+  .modal .foot { padding: 0 18px 16px; text-align: right; }
+  .modal .foot button { padding: 6px 22px; border: 2px outset #fff; background: #d4d0c8; cursor: pointer; }
+  .status { height: 24px; background: #d4d0c8; border-top: 1px solid #808080; font-size: 12px; padding: 4px 10px; }
+</style>
+</head>
+<body>
+<div class="titlebar">LegacyERP 4.2 — [Sales module]</div>
+<div class="menubar">
+  <button id="menu-file">File</button>
+  <button id="menu-edit">Edit</button>
+  <button id="menu-view">View</button>
+  <button id="menu-help">Help</button>
+  <div id="help-dropdown" class="dropdown hidden">
+    <button id="help-contents">Contents</button>
+    <button id="help-updates">Check for updates</button>
+    <button id="help-about">About LegacyERP...</button>
+  </div>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <button id="side-spreadsheet" data-view="spreadsheet">Spreadsheet</button>
+    <button id="side-contacts" data-view="contacts">Contacts</button>
+    <button id="side-invoices" data-view="invoices">Invoices</button>
+    <button id="side-files" data-view="files">Files</button>
+    <button id="side-reports" data-view="reports">Reports</button>
+  </nav>
+  <div class="content">
+    <section id="view-welcome">
+      <h2>Welcome to LegacyERP</h2>
+      <p>Select a module from the left panel. This system has no API; data is only visible on screen.</p>
+    </section>
+
+    <section id="view-spreadsheet" class="hidden">
+      <h2>Sales Q3 2025 — regional totals</h2>
+      <table id="sales-table">
+        <thead><tr><th>Month</th><th>Region</th><th>Units</th><th>Amount (USD)</th></tr></thead>
+        <tbody>
+          <tr><td>July</td><td>North</td><td class="num">120</td><td class="num">8,400.00</td></tr>
+          <tr><td>July</td><td>South</td><td class="num">95</td><td class="num">6,650.00</td></tr>
+          <tr><td>August</td><td>North</td><td class="num">130</td><td class="num">9,100.00</td></tr>
+          <tr><td>August</td><td>South</td><td class="num">88</td><td class="num">6,160.00</td></tr>
+          <tr><td>September</td><td>North</td><td class="num">150</td><td class="num">10,500.00</td></tr>
+          <tr><td>September</td><td>South</td><td class="num">106</td><td class="num">7,440.00</td></tr>
+          <tr class="total"><td colspan="2">Total Q3</td><td class="num" data-field="q3_units">689</td><td class="num" data-field="q3_total">48,250.00</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="view-contacts" class="hidden">
+      <h2>Contact list</h2>
+      <table id="contacts-table">
+        <thead><tr><th>Name</th><th>Company</th><th>E-mail</th><th>Phone</th></tr></thead>
+        <tbody>
+          <tr><td>Ana Ruiz</td><td>Acme Corp</td><td data-field="email_1">ana.ruiz@acme.io</td><td>+57 601 555 0101</td></tr>
+          <tr><td>Bruno Lima</td><td>Globex</td><td data-field="email_2">bruno.lima@globex.com</td><td>+55 11 555 0102</td></tr>
+          <tr><td>Carla Mendes</td><td>Initech</td><td data-field="email_3">carla.mendes@initech.net</td><td>+351 21 555 0103</td></tr>
+          <tr><td>Diego Torres</td><td>Umbrella</td><td data-field="email_4">diego.torres@umbrella.org</td><td>+34 91 555 0104</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="view-invoices" class="hidden">
+      <h2>Invoices — click a row to open it</h2>
+      <table id="invoices-table">
+        <thead><tr><th>Invoice</th><th>Customer</th><th>Date</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr class="clickable" id="inv-015" data-target="inv-015"><td>INV-2024-015</td><td>Acme Corp</td><td>2024-09-02</td><td>Paid</td></tr>
+          <tr class="clickable" id="inv-016" data-target="inv-016"><td>INV-2024-016</td><td>Globex</td><td>2024-09-10</td><td>Paid</td></tr>
+          <tr class="clickable" id="inv-017" data-target="inv-017"><td>INV-2024-017</td><td>Initech</td><td>2024-09-18</td><td>Open</td></tr>
+          <tr class="clickable" id="inv-018" data-target="inv-018"><td>INV-2024-018</td><td>Umbrella</td><td>2024-09-27</td><td>Open</td></tr>
+        </tbody>
+      </table>
+      <div id="invoice-detail" class="panel hidden">
+        <strong id="invoice-title"></strong>
+        <table style="margin-top:8px">
+          <tbody>
+            <tr><td>Subtotal</td><td class="num" id="invoice-subtotal"></td></tr>
+            <tr><td>Tax (19%)</td><td class="num" id="invoice-tax"></td></tr>
+            <tr class="total"><td>Order total</td><td class="num" id="invoice-total" data-field="invoice_total"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="view-files" class="hidden">
+      <h2>File browser</h2>
+      <div class="tree">
+        <button id="folder-my-documents">&#128193; My Documents</button>
+        <div id="files-my-documents" class="files hidden">
+          <button data-target="file:report.pdf" data-field="file_1">&#128196; report.pdf</button>
+          <button data-target="file:budget.xlsx" data-field="file_2">&#128196; budget.xlsx</button>
+          <button data-target="file:notes.txt" data-field="file_3">&#128196; notes.txt</button>
+          <button data-target="file:photo.png" data-field="file_4">&#128196; photo.png</button>
+        </div>
+        <button id="folder-downloads">&#128193; Downloads</button>
+        <div id="files-downloads" class="files hidden">
+          <button data-target="file:installer.exe">&#128196; installer.exe</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-reports" class="hidden">
+      <h2>Reports</h2>
+      <p>The reporting module is licensed separately. Contact your administrator.</p>
+    </section>
+  </div>
+</div>
+<div class="status" id="statusbar">Ready</div>
+
+<div id="about-dialog" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="titlebar">About LegacyERP</div>
+    <div class="body">
+      LegacyERP Sales module<br>
+      Version <span data-field="version">4.2.1-legacy</span> (build 20190314)<br>
+      &copy; 1998-2019 Legacy Software GmbH
+    </div>
+    <div class="foot"><button id="about-ok">OK</button></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var views = ['welcome', 'spreadsheet', 'contacts', 'invoices', 'files', 'reports'];
+  var invoices = {
+    'inv-015': ['INV-2024-015 — Acme Corp', 2100.00],
+    'inv-016': ['INV-2024-016 — Globex', 640.00],
+    'inv-017': ['INV-2024-017 — Initech', 1092.02],
+    'inv-018': ['INV-2024-018 — Umbrella', 3300.00]
+  };
+  function money(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function show(view) {
+    if (views.indexOf(view) < 0) view = 'welcome';
+    views.forEach(function (v) {
+      document.getElementById('view-' + v).classList.toggle('hidden', v !== view);
+      var b = document.getElementById('side-' + v);
+      if (b) b.classList.toggle('active', v === view);
+    });
+    document.getElementById('statusbar').textContent = 'Module: ' + view;
+    if (location.hash !== '#' + view) history.replaceState(null, '', '#' + view);
+  }
+  document.querySelectorAll('.sidebar button').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-view')); });
+  });
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+
+  var help = document.getElementById('help-dropdown');
+  document.getElementById('menu-help').addEventListener('click', function () {
+    help.classList.toggle('hidden');
+    this.classList.toggle('open', !help.classList.contains('hidden'));
+  });
+  ['menu-file', 'menu-edit', 'menu-view'].forEach(function (id) {
+    document.getElementById(id).addEventListener('click', function () { help.classList.add('hidden'); });
+  });
+  document.getElementById('help-about').addEventListener('click', function () {
+    help.classList.add('hidden');
+    document.getElementById('about-dialog').classList.remove('hidden');
+  });
+  document.getElementById('help-contents').addEventListener('click', function () { help.classList.add('hidden'); });
+  document.getElementById('help-updates').addEventListener('click', function () { help.classList.add('hidden'); });
+  document.getElementById('about-ok').addEventListener('click', function () {
+    document.getElementById('about-dialog').classList.add('hidden');
+  });
+
+  document.querySelectorAll('#invoices-table tr.clickable').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var inv = invoices[row.id];
+      var subtotal = inv[1], tax = subtotal * 0.19;
+      document.getElementById('invoice-title').textContent = inv[0];
+      document.getElementById('invoice-subtotal').textContent = money(subtotal);
+      document.getElementById('invoice-tax').textContent = money(tax);
+      document.getElementById('invoice-total').textContent = money(subtotal + tax);
+      document.getElementById('invoice-detail').classList.remove('hidden');
+      document.getElementById('invoice-detail').setAttribute('data-invoice', row.id);
+    });
+  });
+
+  document.getElementById('folder-my-documents').addEventListener('click', function () {
+    document.getElementById('files-my-documents').classList.toggle('hidden');
+  });
+  document.getElementById('folder-downloads').addEventListener('click', function () {
+    document.getElementById('files-downloads').classList.toggle('hidden');
+  });
+  document.querySelectorAll('.files button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.getElementById('statusbar').textContent = 'Selected ' + b.getAttribute('data-target').split(':')[1];
+    });
+  });
+
+  window.__sandboxReset = function () { show(location.hash.slice(1)); };
+  show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>

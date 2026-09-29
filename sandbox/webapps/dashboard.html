@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nimbus Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 768px; overflow: hidden; font-family: "Segoe UI", Arial, sans-serif; font-size: 15px; background: #eef2f7; color: #1f2937; }
+  body[data-theme=dark] { background: #111827; color: #e5e7eb; }
+  body[data-theme=dark] .content, body[data-theme=dark] .card { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+  .login-wrap { height: 768px; display: flex; align-items: center; justify-content: center; }
+  .card { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 28px 32px; width: 400px; }
+  .card h1 { font-size: 22px; margin-bottom: 18px; }
+  label { display: block; font-size: 13px; margin: 12px 0 4px; color: #4b5563; }
+  input[type=text], input[type=password] { width: 100%; padding: 10px; border: 1px solid #9ca3af; border-radius: 4px; font-size: 15px; }
+  .btn { margin-top: 18px; padding: 10px 18px; background: #0f766e; color: #fff; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; }
+  .btn.ghost { background: #fff; color: #0f766e; border: 1px solid #0f766e; }
+  .error { color: #b91c1c; font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .shell { display: flex; height: 768px; }
+  .sidebar { width: 210px; background: #0f172a; color: #e2e8f0; padding: 20px 14px; }
+  .sidebar .brand { font-weight: bold; font-size: 18px; margin-bottom: 26px; }
+  .sidebar button { display: block; width: 100%; text-align: left; background: transparent; color: #e2e8f0; border: none; padding: 11px 12px; border-radius: 6px; font-size: 15px; cursor: pointer; margin-bottom: 4px; }
+  .sidebar button.active { background: #1e293b; }
+  .main { flex: 1; display: flex; flex-direction: column; }
+  .topbar { height: 54px; background: #fff; border-bottom: 1px solid #d1d5db; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+  body[data-theme=dark] .topbar { background: #1f2937; border-color: #374151; }
+  .crumbs button { background: none; border: none; color: #0f766e; font-size: 14px; cursor: pointer; padding: 4px 2px; }
+  .crumbs span { color: #6b7280; margin: 0 4px; }
+  .badge { background: #0f766e; color: #fff; padding: 5px 12px; border-radius: 12px; font-size: 13px; }
+  .content { padding: 24px; }
+  h2 { font-size: 20px; margin-bottom: 14px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; }
+  body[data-theme=dark] table { background: #1f2937; }
+  th, td { border-bottom: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; }
+  th { background: #f8fafc; font-size: 13px; color: #4b5563; }
+  body[data-theme=dark] th { background: #111827; color: #9ca3af; }
+  td button { background: none; border: none; color: #0f766e; font-size: 15px; cursor: pointer; text-decoration: underline; }
+  .search { display: flex; gap: 10px; margin-bottom: 14px; }
+  .search input { width: 320px; padding: 9px; border: 1px solid #9ca3af; border-radius: 4px; font-size: 15px; }
+  .search button { padding: 9px 16px; }
+  .kpis { display: flex; gap: 16px; margin-bottom: 20px; }
+  .kpi { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; padding: 16px 20px; width: 200px; }
+  body[data-theme=dark] .kpi { background: #1f2937; border-color: #374151; }
+  .kpi b { display: block; font-size: 24px; }
+  .toggle { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+  .toggle input { width: 20px; height: 20px; }
+  .ok { color: #047857; font-size: 14px; margin-top: 10px; min-height: 16px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="login" class="login-wrap">
+  <div class="card">
+    <h1>Nimbus Admin — Sign in</h1>
+    <label for="username">Username</label>
+    <input type="text" id="username" autocomplete="off">
+    <label for="password">Password</label>
+    <input type="password" id="password">
+    <button class="btn" id="login-btn">Sign in</button>
+    <div class="error" id="login-error"></div>
+  </div>
+</div>
+
+<div id="app" class="shell hidden" data-last-nav="">
+  <nav class="sidebar">
+    <div class="brand">Nimbus Admin</div>
+    <button id="side-home" data-route="home">Home</button>
+    <button id="side-users" data-route="users">Users</button>
+    <button id="side-reports" data-route="reports">Reports</button>
+    <button id="side-settings" data-route="settings">Settings</button>
+    <button id="side-logout">Sign out</button>
+  </nav>
+  <div class="main">
+    <div class="topbar">
+      <div class="crumbs" id="crumbs"></div>
+      <span class="badge" id="user-badge"></span>
+    </div>
+    <div class="content">
+      <section id="route-home">
+        <h2>Overview</h2>
+        <div class="kpis">
+          <div class="kpi">Active users<b>5</b></div>
+          <div class="kpi">Open tickets<b>12</b></div>
+          <div class="kpi">Uptime<b>99.95%</b></div>
+        </div>
+        <p>Welcome back. Use the sidebar to manage users, review reports or change settings.</p>
+      </section>
+
+      <section id="route-users" class="hidden">
+        <h2>Users</h2>
+        <div class="search">
+          <input type="text" id="user-search" placeholder="Search by name or e-mail">
+          <button class="btn ghost" id="search-btn" style="margin-top:0">Search</button>
+          <button class="btn ghost" id="search-clear" style="margin-top:0">Clear</button>
+        </div>
+        <div id="results-count" data-field="results_count" data-term=""></div>
+        <table id="users-table">
+          <thead><tr><th>Name</th><th>E-mail</th><th>Role</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr data-name="Ana Ruiz" data-email="ana.ruiz@acme.io"><td><button id="user-1">Ana Ruiz</button></td><td>ana.ruiz@acme.io</td><td>Admin</td><td>Active</td></tr>
+            <tr data-name="Bruno Lima" data-email="bruno.lima@globex.com"><td><button id="user-2">Bruno Lima</button></td><td>bruno.lima@globex.com</td><td>Editor</td><td>Active</td></tr>
+            <tr data-name="Carla Mendes" data-email="carla.mendes@initech.net"><td><button id="user-3">Carla Mendes</button></td><td>carla.mendes@initech.net</td><td>Viewer</td><td>Invited</td></tr>
+            <tr data-name="Diego Torres" data-email="diego.torres@umbrella.org"><td><button id="user-4">Diego Torres</button></td><td>diego.torres@umbrella.org</td><td>Editor</td><td>Suspended</td></tr>
+            <tr data-name="Elena Vega" data-email="elena.vega@acme.io"><td><button id="user-5">Elena Vega</button></td><td>elena.vega@acme.io</td><td>Admin</td><td>Active</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="route-user-detail" class="hidden">
+        <h2 id="detail-name"></h2>
+        <table>
+          <tbody>
+            <tr><th>E-mail</th><td id="detail-email" data-field="detail_email"></td></tr>
+            <tr><th>Role</th><td id="detail-role"></td></tr>
+            <tr><th>Status</th><td id="detail-status"></td></tr>
+            <tr><th>Last login</th><td id="detail-login"></td></tr>
+          </tbody>
+        </table>
+        <button class="btn ghost" id="back-to-users">Back to users</button>
+      </section>
+
+      <section id="route-reports" class="hidden">
+        <h2>Reports</h2>
+        <p>Monthly reports are generated on the 1st. Nothing to show yet.</p>
+      </section>
+
+      <section id="route-settings" class="hidden">
+        <h2>Settings</h2>
+        <div class="toggle"><input type="checkbox" id="toggle-dark"><label for="toggle-dark" style="margin:0">Dark mode</label></div>
+        <div class="toggle"><input type="checkbox" id="toggle-2fa"><label for="toggle-2fa" style="margin:0">Require two-factor authentication</label></div>
+        <button class="btn" id="settings-save">Save settings</button>
+        <div class="ok" id="settings-saved" data-theme="" data-twofa=""></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var users = {
+    '1': ['Ana Ruiz', 'ana.ruiz@acme.io', 'Admin', 'Active', '2026-09-28 09:12'],
+    '2': ['Bruno Lima', 'bruno.lima@globex.com', 'Editor', 'Active', '2026-09-27 17:40'],
+    '3': ['Carla Mendes', 'carla.mendes@initech.net', 'Viewer', 'Invited', 'never'],
+    '4': ['Diego Torres', 'diego.torres@umbrella.org', 'Editor', 'Suspended', '2026-08-30 08:03'],
+    '5': ['Elena Vega', 'elena.vega@acme.io', 'Admin', 'Active', '2026-09-29 07:55']
+  };
+  var session = null;
+  var app = document.getElementById('app');
+  var routes = ['home', 'users', 'user-detail', 'reports', 'settings'];
+
+  function parseHash() {
+    var h = location.hash || '#/login';
+    var q = h.indexOf('?');
+    var query = q >= 0 ? h.slice(q + 1) : '';
+    var path = (q >= 0 ? h.slice(0, q) : h).replace(/^#\/?/, '');
+    return { path: path, query: query };
+  }
+  function crumbs(list) {
+    var c = document.getElementById('crumbs');
+    c.innerHTML = '';
+    list.forEach(function (item, i) {
+      if (i > 0) { var s = document.createElement('span'); s.textContent = '/'; c.appendChild(s); }
+      var b = document.createElement('button');
+      b.id = 'crumb-' + item[0];
+      b.textContent = item[1];
+      b.addEventListener('click', function () { navigate(item[2], 'crumb-' + item[0]); });
+      c.appendChild(b);
+    });
+  }
+  function render() {
+    var parsed = parseHash();
+    if (parsed.query.indexOf('s=demo') >= 0 && !session) session = 'demo';
+    if (!session) {
+      document.getElementById('login').classList.remove('hidden');
+      app.classList.add('hidden');
+      if (location.hash !== '#/login') history.replaceState(null, '', '#/login');
+      return;
+    }
+    document.getElementById('login').classList.add('hidden');
+    app.classList.remove('hidden');
+    document.getElementById('user-badge').textContent = 'Signed in as ' + session;
+    var parts = parsed.path.split('/');
+    var route = parts[0] || 'home';
+    var detail = parts[1];
+    if (route === 'users' && detail) route = 'user-detail';
+    if (routes.indexOf(route) < 0) route = 'home';
+    routes.forEach(function (r) { document.getElementById('route-' + r).classList.toggle('hidden', r !== route); });
+    ['home', 'users', 'reports', 'settings'].forEach(function (r) {
+      document.getElementById('side-' + r).classList.toggle('active', r === route || (route === 'user-detail' && r === 'users'));
+    });
+    if (route === 'user-detail') {
+      var u = users[detail] || users['1'];
+      document.getElementById('detail-name').textContent = u[0];
+      document.getElementById('detail-email').textContent = u[1];
+      document.getElementById('detail-role').textContent = u[2];
+      document.getElementById('detail-status').textContent = u[3];
+      document.getElementById('detail-login').textContent = u[4];
+      crumbs([['home', 'Home', '#/home'], ['users', 'Users', '#/users'], ['user', u[0], '#/users/' + detail]]);
+    } else if (route === 'home') {
+      crumbs([['home', 'Home', '#/home']]);
+    } else {
+      crumbs([['home', 'Home', '#/home'], [route, route.charAt(0).toUpperCase() + route.slice(1), '#/' + route]]);
+    }
+    var canonical = '#/' + parsed.path;
+    if (location.hash.indexOf('?') >= 0 || location.hash !== canonical) history.replaceState(null, '', canonical);
+  }
+  function navigate(hash, source) {
+    app.setAttribute('data-last-nav', source || '');
+    if (location.hash === hash) render(); else location.hash = hash;
+  }
+  window.addEventListener('hashchange', render);
+
+  document.getElementById('login-btn').addEventListener('click', function () {
+    var u = document.getElementById('username').value.trim();
+    var p = document.getElementById('password').value;
+    if (u === 'demo' && p === 'demo') {
+      session = 'demo';
+      document.getElementById('login-error').textContent = '';
+      navigate('#/home', 'login');
+    } else {
+      document.getElementById('login-error').textContent = 'Invalid username or password.';
+    }
+  });
+  document.getElementById('password').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') document.getElementById('login-btn').click();
+  });
+  ['home', 'users', 'reports', 'settings'].forEach(function (r) {
+    document.getElementById('side-' + r).addEventListener('click', function () { navigate('#/' + r, 'side-' + r); });
+  });
+  document.getElementById('side-logout').addEventListener('click', function () { session = null; navigate('#/login', 'logout'); });
+  Object.keys(users).forEach(function (id) {
+    document.getElementById('user-' + id).addEventListener('click', function () { navigate('#/users/' + id, 'user-' + id); });
+  });
+  document.getElementById('back-to-users').addEventListener('click', function () { navigate('#/users', 'back-to-users'); });
+
+  function applySearch(term) {
+    var t = term.trim().toLowerCase();
+    var n = 0;
+    document.querySelectorAll('#users-table tbody tr').forEach(function (row) {
+      var match = !t || row.getAttribute('data-name').toLowerCase().indexOf(t) >= 0 || row.getAttribute('data-email').toLowerCase().indexOf(t) >= 0;
+      row.classList.toggle('hidden', !match);
+      if (match) n += 1;
+    });
+    var rc = document.getElementById('results-count');
+    rc.textContent = t ? n + ' result' + (n === 1 ? '' : 's') + ' for "' + term.trim() + '"' : '';
+    rc.setAttribute('data-term', t);
+    rc.setAttribute('data-count', String(n));
+  }
+  document.getElementById('search-btn').addEventListener('click', function () { applySearch(document.getElementById('user-search').value); });
+  document.getElementById('user-search').addEventListener('keydown', function (e) { if (e.key === 'Enter') applySearch(this.value); });
+  document.getElementById('search-clear').addEventListener('click', function () { document.getElementById('user-search').value = ''; applySearch(''); });
+
+  document.getElementById('toggle-dark').addEventListener('change', function () {
+    document.body.setAttribute('data-theme', this.checked ? 'dark' : 'light');
+  });
+  document.getElementById('settings-save').addEventListener('click', function () {
+    var saved = document.getElementById('settings-saved');
+    saved.setAttribute('data-theme', document.getElementById('toggle-dark').checked ? 'dark' : 'light');
+    saved.setAttribute('data-twofa', String(document.getElementById('toggle-2fa').checked));
+    saved.textContent = 'Settings saved.';
+  });
+
+  window.__sandboxReset = function () { render(); };
+  render();
+})();
+</script>
+</body>
+</html>

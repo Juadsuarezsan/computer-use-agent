@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>BackOffice Console</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1024px; height: 768px; overflow: hidden; font-family: Arial, Helvetica, sans-serif; font-size: 15px; background: #f8fafc; color: #0f172a; }
+  .tabs { height: 52px; background: #334155; display: flex; align-items: flex-end; padding: 0 16px; gap: 4px; }
+  .tabs button { background: #475569; color: #fff; border: none; padding: 11px 18px; border-radius: 6px 6px 0 0; font-size: 15px; cursor: pointer; }
+  .tabs button.active { background: #f8fafc; color: #0f172a; }
+  .tabs .clock { margin-left: auto; color: #cbd5e1; font-size: 13px; padding-bottom: 14px; }
+  .pane { padding: 24px 28px; }
+  h2 { font-size: 20px; margin-bottom: 14px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 14px; align-items: center; }
+  .btn { padding: 9px 16px; border: 1px solid #0f766e; background: #0f766e; color: #fff; border-radius: 4px; font-size: 14px; cursor: pointer; }
+  .btn.ghost { background: #fff; color: #0f766e; }
+  .btn.small { padding: 5px 10px; font-size: 13px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; }
+  th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+  th { background: #f1f5f9; font-size: 13px; }
+  .num { text-align: right; font-family: "Courier New", monospace; }
+  .toast { color: #047857; font-size: 14px; min-height: 18px; margin-top: 10px; }
+  .files-list button, .pick button { display: block; width: 320px; text-align: left; background: #fff; border: 1px solid #cbd5e1; padding: 9px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 14px; cursor: pointer; }
+  .files-list button.selected, .pick button.selected { border-color: #0f766e; background: #ecfdf5; }
+  label { display: block; font-size: 13px; color: #475569; margin: 12px 0 4px; }
+  input[type=text], textarea { width: 460px; padding: 9px; border: 1px solid #94a3b8; border-radius: 4px; font-size: 15px; }
+  textarea { height: 90px; resize: none; display: block; }
+  .two-col { display: flex; gap: 32px; }
+  .two-col > div { flex: 1; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; }
+  .card h3 { font-size: 15px; margin-bottom: 6px; }
+  .card p { font-size: 14px; color: #334155; line-height: 1.5; }
+  .meeting { display: flex; justify-content: space-between; align-items: center; }
+  .meeting.past { opacity: 0.55; }
+  .muted { color: #64748b; font-size: 13px; }
+  .hidden { display: none !important; }
+  .result { background: #ecfdf5; border: 1px solid #10b981; color: #065f46; padding: 12px 14px; border-radius: 6px; margin-top: 12px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button id="tab-orders" data-tab="orders">Orders</button>
+  <button id="tab-files" data-tab="files">Files</button>
+  <button id="tab-email" data-tab="email">Email</button>
+  <button id="tab-upload" data-tab="upload">Upload</button>
+  <button id="tab-downloads" data-tab="downloads">Downloads</button>
+  <button id="tab-calendar" data-tab="calendar">Calendar</button>
+  <button id="tab-notes" data-tab="notes">Notes</button>
+  <span class="clock">Today: Tue 2026-09-29</span>
+</div>
+
+<section id="pane-orders" class="pane">
+  <h2>Orders — September 2026</h2>
+  <div class="toolbar">
+    <button class="btn" id="export-csv">Export table as CSV</button>
+    <button class="btn ghost" id="refresh-orders">Refresh</button>
+    <span class="muted">Exported files appear in the Files tab.</span>
+  </div>
+  <table id="orders-table">
+    <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total (USD)</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>ORD-9001</td><td>Acme Corp</td><td class="num">3</td><td class="num">540.00</td><td>Shipped</td></tr>
+      <tr><td>ORD-9002</td><td>Globex</td><td class="num">1</td><td class="num">129.99</td><td>Processing</td></tr>
+      <tr><td>ORD-9003</td><td>Initech</td><td class="num">7</td><td class="num">1,890.50</td><td>Shipped</td></tr>
+      <tr><td>ORD-9004</td><td>Umbrella</td><td class="num">2</td><td class="num">310.00</td><td>Cancelled</td></tr>
+      <tr><td>ORD-9005</td><td>Hooli</td><td class="num">5</td><td class="num">975.25</td><td>Processing</td></tr>
+      <tr><td>ORD-9006</td><td>Vandelay</td><td class="num">4</td><td class="num">420.00</td><td>Shipped</td></tr>
+    </tbody>
+  </table>
+  <div class="toast" id="orders-toast"></div>
+</section>
+
+<section id="pane-files" class="pane hidden">
+  <h2>Files</h2>
+  <div class="toolbar">
+    <button class="btn" id="capture-btn">Capture screenshot</button>
+    <span class="muted">Captures are saved as screenshot.png.</span>
+  </div>
+  <div class="files-list" id="files-list"></div>
+  <div class="toast" id="files-toast"></div>
+</section>
+
+<section id="pane-email" class="pane hidden">
+  <h2>New e-mail</h2>
+  <div class="two-col">
+    <div>
+      <label for="email-to">To</label>
+      <input type="text" id="email-to" placeholder="recipient@example.com">
+      <label for="email-subject">Subject</label>
+      <input type="text" id="email-subject">
+      <label for="email-body">Body</label>
+      <textarea id="email-body"></textarea>
+      <div class="toolbar" style="margin-top:14px">
+        <button class="btn ghost" id="attach-btn">Attach file...</button>
+        <span id="attachment-name" class="muted" data-field="attachment">No attachment</span>
+      </div>
+      <div class="toolbar"><button class="btn" id="send-btn">Send</button></div>
+      <div class="toast" id="email-toast"></div>
+    </div>
+    <div>
+      <div id="attach-picker" class="pick hidden"><label>Choose a file to attach</label></div>
+      <h3 style="font-size:15px;margin:12px 0 6px">Sent</h3>
+      <div id="sent-log"><span class="muted">Nothing sent yet.</span></div>
+      <div id="last-sent" data-to="" data-subject="" data-attachment=""></div>
+    </div>
+  </div>
+</section>
+
+<section id="pane-upload" class="pane hidden">
+  <h2>Upload a file to the data warehouse</h2>
+  <div class="two-col">
+    <div>
+      <label>Select a file</label>
+      <div id="upload-picker" class="pick"></div>
+      <div class="toolbar" style="margin-top:14px"><button class="btn" id="upload-btn">Upload</button></div>
+      <div class="toast" id="upload-toast"></div>
+      <div id="upload-result" class="result hidden" data-file="" data-rows=""></div>
+    </div>
+    <div class="muted"><p>Only files present in the Files tab can be uploaded. CSV exports are validated and their rows counted.</p></div>
+  </div>
+</section>
+
+<section id="pane-downloads" class="pane hidden">
+  <h2>Downloads</h2>
+  <div class="toolbar">
+    <button class="btn" id="download-btn">Download archive.zip</button>
+    <button class="btn ghost" id="unzip-btn" disabled>Unzip archive.zip</button>
+  </div>
+  <div class="files-list" id="downloads-list"><span class="muted">No downloads yet.</span></div>
+  <div id="readme-view" class="hidden">
+    <h3 style="font-size:16px;margin:12px 0 8px">readme.md</h3>
+    <div class="card"><div class="meeting"><h3>Overview</h3><button class="btn small ghost" data-target="copy:overview">Copy passage</button></div><p id="readme-overview">Toolkit for the back-office team. Version 2.3.</p></div>
+    <div class="card"><div class="meeting"><h3>Installation</h3><button class="btn small ghost" data-target="copy:installation">Copy passage</button></div><p id="readme-installation">To install, run make install from the project root and restart the console.</p></div>
+    <div class="card"><div class="meeting"><h3>License</h3><button class="btn small ghost" data-target="copy:license">Copy passage</button></div><p id="readme-license">MIT License.</p></div>
+  </div>
+  <div class="toast" id="downloads-toast"></div>
+</section>
+
+<section id="pane-calendar" class="pane hidden">
+  <h2>Calendar — upcoming meetings</h2>
+  <div class="card meeting past"><div><h3>Sprint retro</h3><p class="muted">Mon 2026-09-22 · 15:00</p><p>Agenda: Review sprint 41 outcomes.</p></div><button class="btn small ghost" data-target="copy-agenda:1">Copy agenda</button></div>
+  <div class="card meeting" id="meeting-2"><div><h3>Q4 planning</h3><p class="muted">Fri 2026-10-02 · 10:00</p><p id="agenda-2">Agenda: Review Q4 roadmap and hiring plan.</p></div><button class="btn small ghost" data-target="copy-agenda:2">Copy agenda</button></div>
+  <div class="card meeting"><div><h3>Vendor review</h3><p class="muted">Thu 2026-10-15 · 09:30</p><p>Agenda: Renewal of the storage contract.</p></div><button class="btn small ghost" data-target="copy-agenda:3">Copy agenda</button></div>
+  <div class="card meeting"><div><h3>All hands</h3><p class="muted">Fri 2026-10-30 · 16:00</p><p>Agenda: Company update and Q&amp;A.</p></div><button class="btn small ghost" data-target="copy-agenda:4">Copy agenda</button></div>
+  <div class="toast" id="calendar-toast"></div>
+</section>
+
+<section id="pane-notes" class="pane hidden">
+  <h2>Notes</h2>
+  <div class="toolbar">
+    <button class="btn ghost" id="paste-btn">Paste from clipboard</button>
+    <button class="btn ghost" id="clear-notes">Clear</button>
+    <span class="muted" id="clipboard-state" data-field="clipboard">Clipboard: empty</span>
+  </div>
+  <textarea id="notes" style="width:640px;height:220px"></textarea>
+</section>
+
+<script>
+(function () {
+  var tabs = ['orders', 'files', 'email', 'upload', 'downloads', 'calendar', 'notes'];
+  var files = ['report.pdf', 'budget.xlsx'];
+  var downloads = [];
+  var clipboard = '';
+  var attachment = '';
+  var pickedUpload = '';
+  var agendas = { '1': 'Review sprint 41 outcomes.', '2': 'Review Q4 roadmap and hiring plan.', '3': 'Renewal of the storage contract.', '4': 'Company update and Q&A.' };
+
+  function show(tab) {
+    if (tabs.indexOf(tab) < 0) tab = 'orders';
+    tabs.forEach(function (t) {
+      document.getElementById('pane-' + t).classList.toggle('hidden', t !== tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+    if (location.hash !== '#' + tab) history.replaceState(null, '', '#' + tab);
+  }
+  tabs.forEach(function (t) {
+    document.getElementById('tab-' + t).addEventListener('click', function () { show(t); });
+  });
+  window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
+
+  function renderFiles() {
+    var list = document.getElementById('files-list');
+    list.innerHTML = '';
+    files.forEach(function (f) {
+      var b = document.createElement('button');
+      b.textContent = '📄 ' + f;
+      b.setAttribute('data-target', 'file:' + f);
+      b.setAttribute('data-field', 'file_' + f.replace(/[^a-z0-9]/gi, '_'));
+      list.appendChild(b);
+    });
+    var up = document.getElementById('upload-picker');
+    up.innerHTML = '';
+    files.forEach(function (f) {
+      var b = document.createElement('button');
+      b.textContent = f;
+      b.setAttribute('data-target', 'pick:' + f);
+      b.classList.toggle('selected', pickedUpload === f);
+      b.addEventListener('click', function () { pickedUpload = f; renderFiles(); });
+      up.appendChild(b);
+    });
+    var at = document.getElementById('attach-picker');
+    at.innerHTML = '<label>Choose a file to attach</label>';
+    files.forEach(function (f) {
+      var b = document.createElement('button');
+      b.textContent = f;
+      b.setAttribute('data-target', 'attach:' + f);
+      b.classList.toggle('selected', attachment === f);
+      b.addEventListener('click', function () {
+        attachment = f;
+        document.getElementById('attachment-name').textContent = 'Attached: ' + f;
+        at.classList.add('hidden');
+        renderFiles();
+      });
+      at.appendChild(b);
+    });
+  }
+  function setClipboard(text, toastId) {
+    clipboard = text;
+    document.getElementById('clipboard-state').textContent = 'Clipboard: ' + text.slice(0, 40) + (text.length > 40 ? '...' : '');
+    if (toastId) document.getElementById(toastId).textContent = 'Copied to clipboard.';
+  }
+
+  document.getElementById('export-csv').addEventListener('click', function () {
+    if (files.indexOf('orders.csv') < 0) files.push('orders.csv');
+    renderFiles();
+    document.getElementById('orders-toast').textContent = 'Exported 6 rows to orders.csv (see Files tab).';
+  });
+  document.getElementById('refresh-orders').addEventListener('click', function () {
+    document.getElementById('orders-toast').textContent = 'Orders are up to date.';
+  });
+  document.getElementById('capture-btn').addEventListener('click', function () {
+    if (files.indexOf('screenshot.png') < 0) files.push('screenshot.png');
+    renderFiles();
+    document.getElementById('files-toast').textContent = 'Screenshot saved as screenshot.png.';
+  });
+  document.getElementById('attach-btn').addEventListener('click', function () {
+    document.getElementById('attach-picker').classList.toggle('hidden');
+  });
+  document.getElementById('send-btn').addEventListener('click', function () {
+    var to = document.getElementById('email-to').value.trim();
+    var subject = document.getElementById('email-subject').value.trim();
+    var toast = document.getElementById('email-toast');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { toast.textContent = 'Enter a valid recipient.'; return; }
+    toast.textContent = 'Sent to ' + to + (attachment ? ' with ' + attachment : '') + '.';
+    var log = document.getElementById('sent-log');
+    if (log.querySelector('.muted')) log.innerHTML = '';
+    var entry = document.createElement('div');
+    entry.className = 'card';
+    entry.textContent = to + ' — ' + (subject || '(no subject)') + (attachment ? ' [' + attachment + ']' : '');
+    log.appendChild(entry);
+    var last = document.getElementById('last-sent');
+    last.setAttribute('data-to', to);
+    last.setAttribute('data-subject', subject);
+    last.setAttribute('data-attachment', attachment);
+    attachment = '';
+    document.getElementById('attachment-name').textContent = 'No attachment';
+    document.getElementById('email-to').value = '';
+    document.getElementById('email-subject').value = '';
+    document.getElementById('email-body').value = '';
+    renderFiles();
+  });
+  document.getElementById('upload-btn').addEventListener('click', function () {
+    var toast = document.getElementById('upload-toast');
+    if (!pickedUpload) { toast.textContent = 'Select a file first.'; return; }
+    var rows = pickedUpload === 'orders.csv' ? '6' : 'n/a';
+    var r = document.getElementById('upload-result');
+    r.setAttribute('data-file', pickedUpload);
+    r.setAttribute('data-rows', rows);
+    r.textContent = 'Uploaded ' + pickedUpload + (rows !== 'n/a' ? ' (' + rows + ' rows)' : '') + ' to the warehouse.';
+    r.classList.remove('hidden');
+    toast.textContent = '';
+  });
+  document.getElementById('download-btn').addEventListener('click', function () {
+    if (downloads.indexOf('archive.zip') < 0) downloads.push('archive.zip');
+    var list = document.getElementById('downloads-list');
+    list.innerHTML = '';
+    downloads.forEach(function (f) {
+      var b = document.createElement('button');
+      b.textContent = '📦 ' + f;
+      b.setAttribute('data-target', 'download:' + f);
+      list.appendChild(b);
+    });
+    document.getElementById('unzip-btn').disabled = false;
+    document.getElementById('downloads-toast').textContent = 'archive.zip downloaded (12 KB).';
+  });
+  document.getElementById('unzip-btn').addEventListener('click', function () {
+    if (downloads.indexOf('readme.md') < 0) downloads.push('readme.md');
+    var list = document.getElementById('downloads-list');
+    var b = document.createElement('button');
+    b.id = 'open-readme';
+    b.textContent = '📄 readme.md (extracted)';
+    b.addEventListener('click', function () { document.getElementById('readme-view').classList.remove('hidden'); });
+    list.appendChild(b);
+    document.getElementById('downloads-toast').textContent = 'Extracted 1 file: readme.md.';
+  });
+  document.querySelectorAll('[data-target^="copy:"]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var section = b.getAttribute('data-target').split(':')[1];
+      setClipboard(document.getElementById('readme-' + section).textContent, 'downloads-toast');
+    });
+  });
+  document.querySelectorAll('[data-target^="copy-agenda:"]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      setClipboard(agendas[b.getAttribute('data-target').split(':')[1]], 'calendar-toast');
+    });
+  });
+  document.getElementById('paste-btn').addEventListener('click', function () {
+    var n = document.getElementById('notes');
+    n.value = (n.value ? n.value + '\n' : '') + clipboard;
+  });
+  document.getElementById('clear-notes').addEventListener('click', function () { document.getElementById('notes').value = ''; });
+
+  window.__sandboxReset = function () { show(location.hash.slice(1)); };
+  renderFiles();
+  show(location.hash.slice(1));
+})();
+</script>
+</body>
+</html>
