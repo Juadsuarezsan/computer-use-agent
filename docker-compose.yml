@@ -1,28 +1,52 @@
+# Full stack: PostgreSQL (audit log) + sandbox desktop (Xvfb/xdotool/scrot/noVNC)
+# + API. `docker compose up` validation is pending (no Docker daemon in the
+# development environment); see docs/architecture.md.
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    environment: { POSTGRES_USER: cu, POSTGRES_PASSWORD: cu_dev, POSTGRES_DB: cu }
+    environment:
+      POSTGRES_USER: cu
+      POSTGRES_PASSWORD: cu_dev
+      POSTGRES_DB: cu
     ports: ["5432:5432"]
     volumes: [postgres-data:/var/lib/postgresql/data]
-    healthcheck: { test: ["CMD-SHELL","pg_isready -U cu"], interval: 5s, retries: 10 }
-  vm:
-    # Public lightweight Ubuntu + Xvfb + VNC image. Replace with a custom image
-    # in production that has the apps you want to automate pre-installed.
-    image: dorowu/ubuntu-desktop-lxde-vnc:focal
-    ports: ["6080:80", "5900:5900"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cu"]
+      interval: 5s
+      retries: 10
+
+  sandbox:
+    build:
+      context: .
+      dockerfile: docker/sandbox.Dockerfile
     shm_size: "1gb"
+    ports:
+      - "5900:5900"   # VNC
+      - "6080:6080"   # noVNC live viewer
+      - "8080:8080"   # fixture web apps
+    environment:
+      DISPLAY_WIDTH: "1024"
+      DISPLAY_HEIGHT: "768"
+
   api:
     build: .
     env_file: .env
     environment:
       DATABASE_URL: postgresql://cu:cu_dev@postgres:5432/cu
-      VM_VNC_HOST: vm
-
+      # In-process Playwright sandbox by default; switch to xdotool when the
+      # API runs inside the sandbox container (same X display).
+      VM_MODE: ${VM_MODE:-playwright}
+      VM_VNC_HOST: sandbox
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
     depends_on:
-      postgres: { condition: service_healthy }
-      vm:       { condition: service_started }
-
+      postgres:
+        condition: service_healthy
+      sandbox:
+        condition: service_started
     ports: ["8000:8000"]
-    volumes: [./src:/app/src, ./data:/app/data]
+    volumes:
+      - ./data:/app/data
+      - ./eval:/app/eval
+
 volumes:
   postgres-data:
