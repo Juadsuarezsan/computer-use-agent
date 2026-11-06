@@ -19,6 +19,7 @@ DEFAULT_MODEL = "claude-sonnet-4-5-20250929"
 """Pinned production model id (never an alias such as ``claude-sonnet-4-5``)."""
 
 VmMode = Literal["fake", "playwright", "xdotool"]
+ReasonerMode = Literal["auto", "stub", "claude", "local", "cascade"]
 
 
 class Settings(BaseSettings):
@@ -41,6 +42,16 @@ class Settings(BaseSettings):
         rate_limit: slowapi rate-limit string for ``/api/*``.
         langchain_tracing_v2 / langchain_api_key / langchain_project: LangSmith
             wiring; LangGraph picks these up from the environment automatically.
+        reasoner_mode: ``auto`` (Claude with a key, else the stub), ``stub``,
+            ``claude``, ``local`` (small pre-trained model, no API) or ``cascade``
+            (local first, Claude only after repeated verifier failures and only
+            when a key is set).
+        local_base_model / local_processor / local_adapter: Local checkpoint, its
+            processor and the LoRA adapter produced by ``training/train_lora.py``.
+        local_load_in_4bit: Quantise the local model to 4 bits (6 GB GPUs).
+        local_max_pixels: Image budget of the local processor.
+        local_history: Previous actions in the local prompt (same as training).
+        cascade_escalate_after: Consecutive verifier failures before escalating.
     """
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -72,6 +83,15 @@ class Settings(BaseSettings):
     langchain_tracing_v2: bool = Field(default=False, alias="LANGCHAIN_TRACING_V2")
     langchain_api_key: str | None = Field(default=None, alias="LANGCHAIN_API_KEY")
     langchain_project: str = Field(default="computer-use-agent", alias="LANGCHAIN_PROJECT")
+
+    reasoner_mode: ReasonerMode = Field(default="auto", alias="REASONER_MODE")
+    local_base_model: str = Field(default="showlab/ShowUI-2B", alias="LOCAL_BASE_MODEL")
+    local_processor: str = Field(default="Qwen/Qwen2-VL-2B-Instruct", alias="LOCAL_PROCESSOR")
+    local_adapter: str = Field(default="", alias="LOCAL_ADAPTER")
+    local_load_in_4bit: bool = Field(default=True, alias="LOCAL_LOAD_IN_4BIT")
+    local_max_pixels: int = Field(default=768 * 28 * 28, alias="LOCAL_MAX_PIXELS", ge=28 * 28)
+    local_history: int = Field(default=4, alias="LOCAL_HISTORY", ge=0, le=20)
+    cascade_escalate_after: int = Field(default=2, alias="CASCADE_ESCALATE_AFTER", ge=1, le=20)
 
     @property
     def cors_origin_list(self) -> list[str]:

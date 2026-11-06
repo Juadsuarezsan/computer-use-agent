@@ -39,7 +39,7 @@ ELEMENT_MAP_JS = """
     if (!selector && el.name) selector = tag + '[name="' + el.name + '"]';
     if (!selector) continue;
     const label = (el.getAttribute('aria-label') || el.placeholder || (el.labels && el.labels[0] ? el.labels[0].innerText : '') || el.innerText || el.value || el.name || '').trim().slice(0, 60);
-    out.push({selector, role, label, x: Math.round(cx), y: Math.round(cy)});
+    out.push({selector, role, label, x: Math.round(cx), y: Math.round(cy), w: Math.round(r.width), h: Math.round(r.height)});
   }
   const fields = {};
   for (const el of document.querySelectorAll('[data-field]')) {
@@ -199,6 +199,8 @@ class PlaywrightVM:
                 label=str(e["label"]),
                 x=int(e["x"]),
                 y=int(e["y"]),
+                w=int(e.get("w", 0)),
+                h=int(e.get("h", 0)),
             )
             for e in info["elements"]
         ]

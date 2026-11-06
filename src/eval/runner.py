@@ -20,7 +20,7 @@ from typing import Any
 
 from loguru import logger
 
-from src.agent.orchestrator import build_reasoner, build_verifier, run_task
+from src.agent.orchestrator import build_local_reasoner, build_reasoner, build_verifier, run_task
 from src.agent.protocols import VM, Observation, Reasoner, ReasonerOutput
 from src.agent.vm_executor import FakeVM
 from src.api.schemas import Action
@@ -39,13 +39,15 @@ class SuiteConfig:
     Attributes:
         name: File-name friendly id (``stub-playwright``).
         label: Human label shown in RESULTS.md.
-        reasoner: ``stub`` or ``claude``.
+        reasoner: ``stub``, ``claude`` or ``local`` (small pre-trained model, no API).
         vm: ``playwright`` or ``fake``.
         verifier: Enable the per-step verifier.
         safety: Enable the safety layer.
         max_steps: Optional budget override.
         task_ids: Optional subset.
         note: Free text about what the row measures.
+        adapter: LoRA adapter for ``local`` rows (``""`` = base model, ``None`` = settings).
+        heldout: Task ids never used for training; reported apart from the seen ones.
     """
 
     name: str
@@ -57,6 +59,8 @@ class SuiteConfig:
     max_steps: int | None = None
     task_ids: list[str] | None = None
     note: str = ""
+    adapter: str | None = None
+    heldout: list[str] | None = None
 
 
 @dataclass
@@ -79,6 +83,11 @@ class TaskResult:
     final_output: str
     trace_id: str
     actions: list[str] = field(default_factory=list)
+
+
+def _local_label(settings: Settings, config: SuiteConfig) -> str:
+    adapter = settings.local_adapter if config.adapter is None else config.adapter
+    return settings.local_base_model + (f" + LoRA {adapter}" if adapter else " (base, sin ajuste)")
 
 
 def _build_vm(kind: str, settings: Settings) -> VM:
@@ -109,8 +118,8 @@ def _summary(values: list[float]) -> dict[str, float]:
     }
 
 
-def aggregate(results: list[TaskResult]) -> dict[str, Any]:
-    """Aggregate per-task results globally and per category."""
+def aggregate(results: list[TaskResult], heldout: list[str] | None = None) -> dict[str, Any]:
+    """Aggregate per-task results globally, per category and (optionally) seen vs held-out."""
 
     def _agg(items: list[TaskResult]) -> dict[str, Any]:
         n = len(items)
@@ -135,10 +144,17 @@ def aggregate(results: list[TaskResult]) -> dict[str, Any]:
             "recovery_rate": round(recovered / failed_with_failures, 4) if failed_with_failures else None,
         }
 
-    return {
+    out: dict[str, Any] = {
         "overall": _agg(results),
         "by_category": {cat: _agg([r for r in results if r.category == cat]) for cat in CATEGORIES},
     }
+    if heldout:
+        held = set(heldout)
+        out["by_split"] = {
+            "seen": _agg([r for r in results if r.id not in held]),
+            "heldout": _agg([r for r in results if r.id in held]),
+        }
+    return out
 
 
 async def run_suite(
@@ -164,8 +180,11 @@ async def run_suite(
         catalogue = [t for t in catalogue if t.id in set(config.task_ids)]
     own_vm = vm is None
     vm = vm or _build_vm(config.vm, s)
+    if reasoner is None and config.reasoner == "local":
+        reasoner = build_local_reasoner(s, adapter=config.adapter, label=config.name)
     reasoner = reasoner or build_reasoner(s, force_stub=config.reasoner == "stub")
-    verifier = build_verifier(s, force_heuristic=config.reasoner == "stub") if config.verifier else None
+    # only Claude rows may use the paid verifier; stub and local rows stay at zero API cost
+    verifier = build_verifier(s, force_heuristic=config.reasoner != "claude") if config.verifier else None
     started = datetime.now(UTC)
     results: list[TaskResult] = []
     try:
@@ -212,10 +231,11 @@ async def run_suite(
         "vm": vm.name,
         "model": s.anthropic_model if config.reasoner == "claude" else None,
         "llm_used": config.reasoner == "claude",
+        "local_model": _local_label(s, config) if config.reasoner == "local" else None,
         "started_at": started.isoformat(),
         "finished_at": datetime.now(UTC).isoformat(),
         "n_tasks": len(results),
-        "aggregate": aggregate(results),
+        "aggregate": aggregate(results, config.heldout),
         "results": [asdict(r) for r in results],
     }
     return report
@@ -361,7 +381,14 @@ def render_results_md(
     lines.append("")
     for suite in suites:
         agg = suite["aggregate"]["by_category"]
-        tag = "fallback determinista, sin LLM" if not suite["llm_used"] else f"LLM: {suite['model']}"
+        local = suite.get("local_model")
+        if suite["llm_used"]:
+            tag = f"LLM: {suite['model']}"
+        elif local:
+            tag = f"modelo local: {local}, sin API"
+        else:
+            tag = "fallback determinista, sin LLM"
+        free_cost = "$0.0000 (modelo local)" if local else "$0.0000 (sin LLM)"
         lines.append(f"### {suite['label']} — `{suite['name']}` ({tag})")
         lines.append("")
         if suite.get("config", {}).get("note"):
@@ -376,7 +403,7 @@ def render_results_md(
             if row.get("n", 0) == 0:
                 lines.append(f"| {CATEGORY_LABELS[cat]} | n/a | n/a | n/a | n/a |")
                 continue
-            cost = f"${row['avg_cost_usd']:.4f}" if suite["llm_used"] else "$0.0000 (sin LLM)"
+            cost = f"${row['avg_cost_usd']:.4f}" if suite["llm_used"] else free_cost
             lines.append(
                 f"| {CATEGORY_LABELS[cat]} | {_fmt_pct(row['success_rate'])} ({int(row['success_rate'] * row['n'])}/{row['n']}) "
                 f"| {row['avg_steps']:.1f} | {row['avg_latency_ms'] / 1000:.2f} s / {row['latency_ms']['p95'] / 1000:.2f} s | {cost} |"
@@ -385,7 +412,7 @@ def render_results_md(
         lines.append(
             f"| **Total** | **{_fmt_pct(overall['success_rate'])}** ({int(overall['success_rate'] * overall['n'])}/{overall['n']}) "
             f"| {overall['avg_steps']:.1f} | {overall['avg_latency_ms'] / 1000:.2f} s / {overall['latency_ms']['p95'] / 1000:.2f} s "
-            f"| {'$' + format(overall['avg_cost_usd'], '.4f') if suite['llm_used'] else '$0.0000 (sin LLM)'} |"
+            f"| {'$' + format(overall['avg_cost_usd'], '.4f') if suite['llm_used'] else free_cost} |"
         )
         lines.append("")
         steps = overall["steps"]
@@ -396,6 +423,15 @@ def render_results_md(
             f"recovery rate: {_fmt_pct(overall['recovery_rate'])}; blocked actions: {overall['blocked_total']}."
         )
         lines.append("")
+        split = suite["aggregate"].get("by_split")
+        if split and split["heldout"].get("n", 0):
+            seen, held = split["seen"], split["heldout"]
+            lines.append(
+                f"Seen task templates (original instance never trained on): {_fmt_pct(seen['success_rate'])} "
+                f"({int(seen['success_rate'] * seen['n'])}/{seen['n']}); held-out tasks (never trained on): "
+                f"{_fmt_pct(held['success_rate'])} ({int(held['success_rate'] * held['n'])}/{held['n']})."
+            )
+            lines.append("")
     lines.append(f"### Claude Computer Use (`{model}`, tool `computer_20250124`)")
     lines.append("")
     lines.append("| Categoría de tarea | Success Rate | Avg Steps | Latencia | Costo/tarea |")
@@ -436,7 +472,8 @@ def render_results_md(
     lines.append("| Fila | Qué mide | Estado |")
     lines.append("|---|---|---|")
     for suite in suites:
-        lines.append(f"| `{suite['name']}` | {suite['label']} | medido (sin LLM) |")
+        status = "medido (modelo local, sin API)" if suite.get("local_model") else "medido (sin LLM)"
+        lines.append(f"| `{suite['name']}` | {suite['label']} | {status} |")
     if safety is not None:
         lines.append(
             "| `safety-ablation` | Safety layer on/off sobre acciones adversariales | medido (sin LLM) |"
