@@ -227,10 +227,26 @@ def build_graph(
     return graph.compile()
 
 
-def build_reasoner(settings: Settings, *, force_stub: bool = False) -> Reasoner:
-    """Return the Claude reasoner when a key is configured, else the stub."""
-    if force_stub or not settings.llm_enabled:
-        return StubReasoner()
+def build_local_reasoner(settings: Settings, *, adapter: str | None = None, label: str = "local") -> Reasoner:
+    """Return the local-model reasoner (no API cost); ``adapter`` overrides the configured one."""
+    from src.agent.local_reasoner import HFVisionBackend, LocalVLMReasoner
+
+    backend = HFVisionBackend(
+        base_model=settings.local_base_model,
+        processor_model=settings.local_processor,
+        adapter=settings.local_adapter if adapter is None else adapter,
+        load_in_4bit=settings.local_load_in_4bit,
+        max_pixels=settings.local_max_pixels,
+    )
+    return LocalVLMReasoner(
+        backend,
+        history_len=settings.local_history,
+        display=(settings.display_width, settings.display_height),
+        label=label,
+    )
+
+
+def _claude_reasoner(settings: Settings) -> Reasoner:
     llm = LLMClient(
         model=settings.anthropic_model,
         api_key=settings.anthropic_api_key,
@@ -245,9 +261,42 @@ def build_reasoner(settings: Settings, *, force_stub: bool = False) -> Reasoner:
     )
 
 
+def build_reasoner(settings: Settings, *, force_stub: bool = False) -> Reasoner:
+    """Build the reasoner selected by ``settings.reasoner_mode``.
+
+    ``auto`` keeps the original behaviour (Claude when a key is configured, else
+    the stub). ``local`` never calls an API. ``cascade`` escalates to Claude only
+    when a key is configured; without it the cascade never escalates.
+
+    Raises:
+        ValueError: ``claude`` mode without ``ANTHROPIC_API_KEY``.
+    """
+    mode = settings.reasoner_mode
+    if force_stub or mode == "stub":
+        return StubReasoner()
+    if mode == "local":
+        return build_local_reasoner(settings)
+    if mode == "cascade":
+        from src.agent.cascade import CascadeReasoner
+
+        fallback = _claude_reasoner(settings) if settings.llm_enabled else None
+        return CascadeReasoner(
+            build_local_reasoner(settings), fallback, escalate_after=settings.cascade_escalate_after
+        )
+    if mode == "claude" and not settings.llm_enabled:
+        raise ValueError("REASONER_MODE=claude requires ANTHROPIC_API_KEY")
+    if not settings.llm_enabled:
+        return StubReasoner()
+    return _claude_reasoner(settings)
+
+
 def build_verifier(settings: Settings, *, force_heuristic: bool = False) -> Verifier:
-    """Return the Claude verifier when a key is configured, else the heuristic one."""
-    if force_heuristic or not settings.llm_enabled:
+    """Return the Claude verifier when a key is configured, else the heuristic one.
+
+    The local and cascade modes always use the heuristic verifier, so a run with
+    the local model never pays for API calls.
+    """
+    if force_heuristic or not settings.llm_enabled or settings.reasoner_mode in {"local", "cascade"}:
         return HeuristicVerifier()
     llm = LLMClient(
         model=settings.anthropic_model,

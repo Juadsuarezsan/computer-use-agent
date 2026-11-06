@@ -1,4 +1,5 @@
-.PHONY: install test lint format typecheck eval demo-traces api gitleaks manifest all
+.PHONY: install install-local test lint format typecheck eval demo-traces api gitleaks manifest all \
+	local-data local-check local-train local-eval
 
 PY ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -36,5 +37,25 @@ api:
 
 gitleaks:
 	gitleaks detect --no-banner --redact --source .
+
+# --- small local model (docs/local_model.md) ---
+ADAPTER ?= models/adapters/showui-2b-lora
+
+install-local:
+	$(PIP) install -e ".[dev,local]"
+
+local-data:
+	$(PY) -m training.generate_data
+
+local-check:
+	$(PY) -m training.train_lora --dry-run
+
+local-train:
+	$(PY) -m training.train_lora --out $(ADAPTER)
+
+local-eval:
+	$(PY) -m training.eval_steps --split test --adapter ""
+	$(PY) -m training.eval_steps --split test --adapter $(ADAPTER)
+	$(PY) -m eval.run --with-local --adapter $(ADAPTER)
 
 all: lint typecheck test

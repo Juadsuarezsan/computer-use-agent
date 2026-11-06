@@ -40,6 +40,14 @@ dev = [
     "types-requests==2.32.0.20241016",
 ]
 notebook = ["jupyter==1.1.1", "nbconvert==7.16.4"]
+# small pre-trained GUI model (ShowUI-2B / Qwen2-VL family) + QLoRA fine-tuning; needs a CUDA GPU
+local = [
+    "torch>=2.4",
+    "transformers>=4.45,<5",
+    "peft>=0.13",
+    "bitsandbytes>=0.44",
+    "accelerate>=1.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["src*"]
@@ -52,7 +60,7 @@ extend-exclude = [".venv", "notebooks", "data", "demo"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "D"]
 ignore = ["D100", "D104", "D105", "D107", "D203", "D212", "D401", "E501"]
-per-file-ignores = { "tests/*" = ["D"], "scripts/*" = ["D"], "eval/*" = ["D"] }
+per-file-ignores = { "tests/*" = ["D"], "scripts/*" = ["D"], "eval/*" = ["D"], "training/*" = ["D"] }
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -70,7 +78,16 @@ plugins = ["pydantic.mypy"]
 exclude = ["^\\.venv/", "^notebooks/", "^demo/"]
 
 [[tool.mypy.overrides]]
-module = ["langgraph.*", "slowapi.*", "playwright.*", "psycopg_pool.*"]
+module = [
+    "langgraph.*",
+    "slowapi.*",
+    "playwright.*",
+    "psycopg_pool.*",
+    "torch.*",
+    "transformers.*",
+    "peft.*",
+    "bitsandbytes.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

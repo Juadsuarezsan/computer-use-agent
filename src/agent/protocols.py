@@ -19,6 +19,8 @@ class UIElement:
         label: Human-readable label (text, aria-label, placeholder or name).
         x: Center x (pixels, viewport coordinates).
         y: Center y (pixels, viewport coordinates).
+        w: Width of the bounding box (pixels; ``0`` when unknown).
+        h: Height of the bounding box (pixels; ``0`` when unknown).
     """
 
     selector: str
@@ -26,6 +28,12 @@ class UIElement:
     label: str
     x: int
     y: int
+    w: int = 0
+    h: int = 0
+
+    def contains(self, px: int, py: int) -> bool:
+        """Whether a point falls inside the element's bounding box (needs ``w``/``h``)."""
+        return abs(px - self.x) <= self.w / 2 and abs(py - self.y) <= self.h / 2
 
 
 @dataclass

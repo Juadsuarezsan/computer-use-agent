@@ -121,7 +121,9 @@ streaming viewer are pending (require `ANTHROPIC_API_KEY`).
 ## Repository layout
 
 ```
-src/agent/        orchestrator (LangGraph), reasoner (Claude + stub), llm client, verifier, VM drivers
+src/agent/        orchestrator (LangGraph), reasoners (Claude, stub, local model, cascade), llm client, verifier, VM drivers
+src/local_model/  action format + prompt, task variants, dataset recorder (small-model fine-tuning)
+training/         generate_data.py, train_lora.py (QLoRA), eval_steps.py (offline step accuracy)
 src/safety/       blocklist, regexes, URL allowlist, HITL policy
 src/sandbox/      deterministic DOM checkers
 src/eval/         task catalogue, runner, LLM-judge rubric
@@ -135,6 +137,27 @@ docker/           sandbox image (Xvfb, xdotool, scrot, noVNC, Firefox, LibreOffi
 docs/             architecture, decisions, safety, data schema, performance, scalability, error analysis, blog
 scripts/          download_data.py, make_manifest.py, record_demo_traces.py, error_analysis.py
 ```
+
+## Small local model (cost reduction)
+
+The agent can run on a small pre-trained GUI model on the operator's own GPU instead of Claude:
+ShowUI-2B (Qwen2-VL-2B architecture, pre-trained for screen grounding and navigation), fine-tuned
+with QLoRA on trajectories recorded from this sandbox. The labels come from the scripted oracle on
+task variants (other typed values, viewport sizes, fonts, padding, colours), and a trajectory is
+kept only when the ground-truth checker passes, so nothing is labelled by hand and no API is called.
+`REASONER_MODE=cascade` keeps Claude as an optional fallback after repeated verifier failures.
+
+```bash
+pip install -e ".[local]"
+python -m training.generate_data            # ~500 trajectories, ~3 000 (screenshot, action) pairs
+python -m training.train_lora --dry-run     # validates the dataset
+python -m training.train_lora               # 4-bit QLoRA, fits a 6 GB GPU
+python -m training.eval_steps --split test --adapter models/adapters/showui-2b-lora
+python -m eval.run --with-local --adapter models/adapters/showui-2b-lora
+```
+
+Status: **built and unit-tested, not run yet** — no dataset, adapter or local-model result exists
+in this repository. Details, hardware budget and risks: [`docs/local_model.md`](docs/local_model.md).
 
 ## Known limitations
 

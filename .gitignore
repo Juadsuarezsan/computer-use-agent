@@ -11,6 +11,9 @@ data/raw/
 data/processed/
 data/cache/
 models/checkpoints/
+models/adapters/
+# recorded fine-tuning dataset (regenerate with python -m training.generate_data)
+data/local_model*/
 *.pt
 *.bin
 *.safetensors

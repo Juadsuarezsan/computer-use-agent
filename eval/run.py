@@ -5,9 +5,12 @@ Usage::
     python -m eval.run                # stub baseline + ablations on the Playwright sandbox
     python -m eval.run --vm fake      # harness smoke run without Chromium
     python -m eval.run --with-claude  # adds the Claude rows (needs ANTHROPIC_API_KEY)
+    python -m eval.run --with-local --adapter models/adapters/showui-2b-lora
+                                      # adds the local-model rows (base and LoRA, no API)
 
 Rows that need an API key are never invented: without the key they stay
-``pendiente (requiere ANTHROPIC_API_KEY)``.
+``pendiente (requiere ANTHROPIC_API_KEY)``. Local rows need the ``[local]``
+extra and a GPU; they report the 4 held-out tasks apart from the seen ones.
 """
 
 from __future__ import annotations
@@ -31,7 +34,51 @@ from src.eval.runner import (
     run_suite,
     save_run,
 )
+from src.local_model.variants import DEFAULT_HELDOUT
 from src.observability import configure_logging
+
+
+def _local_configs(vm: str, adapter: str, heldout: list[str]) -> list[SuiteConfig]:
+    configs = [
+        SuiteConfig(
+            name=f"local-base-{vm}",
+            label="Local model without fine-tuning (zero-shot) + heuristic verifier",
+            reasoner="local",
+            vm=vm,
+            verifier=True,
+            adapter="",
+            heldout=heldout,
+            note="Pre-trained checkpoint as downloaded: measures what the fine-tuning adds.",
+        )
+    ]
+    if adapter:
+        configs.append(
+            SuiteConfig(
+                name=f"local-lora-{vm}",
+                label="Local model + LoRA adapter + heuristic verifier",
+                reasoner="local",
+                vm=vm,
+                verifier=True,
+                adapter=adapter,
+                heldout=heldout,
+                note=(
+                    "Fine-tuned on recorded variants; the original instances evaluated here were never "
+                    "recorded, and the held-out tasks were never trained on."
+                ),
+            )
+        )
+        configs.append(
+            SuiteConfig(
+                name=f"local-lora-{vm}-no-verifier",
+                label="Ablation — local model + LoRA without verifier",
+                reasoner="local",
+                vm=vm,
+                verifier=False,
+                adapter=adapter,
+                heldout=heldout,
+            )
+        )
+    return configs
 
 
 def _configs(vm: str, with_claude: bool) -> list[SuiteConfig]:
@@ -85,7 +132,11 @@ async def _run(args: argparse.Namespace) -> None:
     today = date.today()
     files: list[str] = []
     suites: list[dict[str, Any]] = []
-    for config in _configs(args.vm, args.with_claude):
+    configs = _configs(args.vm, args.with_claude)
+    if args.with_local:
+        heldout = [t.strip() for t in args.heldout.split(",") if t.strip()]
+        configs += _local_configs(args.vm, args.adapter, heldout)
+    for config in configs:
         report = await run_suite(config, settings=settings)
         files.append(save_run(report, runs_dir=RUNS_DIR, day=today).name)
         suites.append(report)
@@ -110,6 +161,11 @@ def main() -> None:
     )
     parser.add_argument("--vm", choices=["playwright", "fake"], default="playwright")
     parser.add_argument("--with-claude", action="store_true", help="also run the Claude rows (needs a key)")
+    parser.add_argument("--with-local", action="store_true", help="also run the local-model rows (no API)")
+    parser.add_argument("--adapter", default="", help="LoRA adapter directory for the fine-tuned local rows")
+    parser.add_argument(
+        "--heldout", default=",".join(DEFAULT_HELDOUT), help="comma-separated task ids never trained on"
+    )
     parser.add_argument("--skip-safety", action="store_true", help="skip the safety ablation")
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args()
